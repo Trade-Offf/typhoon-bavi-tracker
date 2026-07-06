@@ -7,7 +7,7 @@ import { renderGuide } from "./guide";
 import { initNews, refreshNews } from "./news";
 import { initSlogans } from "./slogan";
 import { openShareModal } from "./share";
-import { initMobile } from "./mobile";
+import { initMobile, isMobile } from "./mobile";
 import { computeImpacts, formatEta, type CityImpact } from "./impact";
 
 const TYPHOON_ID = "202609"; // 2026 年第 9 号台风 巴威 BAVI
@@ -152,10 +152,15 @@ function updateAlertBanner(impacts: CityImpact[]): void {
     document.body.appendChild(banner);
     banner.addEventListener("click", () => tmap.focusCity(target.name));
   }
+  const small = isMobile();
   const msg =
     target.status === "inside"
-      ? `${target.name} · 大风影响中 · 请留在室内`
-      : `${target.name} · 预计 ${formatEta(target.etaT!)} 后波及 · 点击看详情`;
+      ? small
+        ? `${target.name} · 大风影响中`
+        : `${target.name} · 大风影响中 · 请留在室内`
+      : small
+        ? `${target.name} · ${formatEta(target.etaT!)}后波及 →`
+        : `${target.name} · 预计 ${formatEta(target.etaT!)} 后波及 · 点击看详情`;
   banner.textContent = msg;
 }
 
@@ -196,6 +201,8 @@ function applyData(d: TyphoonData, first: boolean): void {
     renderLegend();
     playback.seek(playback.t1);
     tmap.fitToData();
+    // 手机 webview 首屏地址栏伸缩会改变视口，取景自愈保证台风完整入镜
+    tmap.armFitSelfHeal();
     $("#loading").classList.add("hide");
     playback.start();
     const city = cityFromUrl();
@@ -355,6 +362,7 @@ function updateFreshness(): void {
   const stamp = document.getElementById("datastamp");
   if (!stamp || !data) return;
   const last = data.points[data.points.length - 1];
+  const small = isMobile();
   let tail: string;
   let stale = false;
   if (!lastFetchAt) {
@@ -362,10 +370,16 @@ function updateFreshness(): void {
   } else {
     const min = Math.floor((Date.now() - lastFetchAt) / 60000);
     stale = min >= 15;
-    tail = stale ? " · ⚠ 数据可能滞后，以官方预警为准" : min < 1 ? " · 刚刚同步" : ` · ${min} 分钟前同步`;
+    if (stale) tail = small ? " · ⚠ 可能滞后" : " · ⚠ 数据可能滞后，以官方预警为准";
+    // 移动端空间紧张：正常同步不显示尾注（避免截断），仅在过期时提示
+    else if (small) tail = "";
+    else if (min < 1) tail = " · 刚刚同步";
+    else tail = ` · ${min} 分钟前同步`;
   }
   stamp.classList.toggle("stale", stale);
-  stamp.innerHTML = `数据截至 <b>${last.time}</b>（北京时间）${data.active ? "" : " · 已停编"}${tail}`;
+  stamp.innerHTML = small
+    ? `截至 <b>${last.time.slice(5, 16)}</b>${data.active ? "" : " · 停编"}${tail}`
+    : `数据截至 <b>${last.time}</b>（北京时间）${data.active ? "" : " · 已停编"}${tail}`;
 }
 
 /** ———— 启动与自动刷新（失败退避重试） ———— */

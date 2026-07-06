@@ -57,6 +57,7 @@ export class TyphoonMap {
   private cityMarkers = new Map<string, maplibregl.Marker>();
   private impacts: CityImpact[] = [];
   private cityPopup: maplibregl.Popup | null = null;
+  private userInteracted = false;
 
   constructor(container: string) {
     this.map = new maplibregl.Map({
@@ -71,6 +72,17 @@ export class TyphoonMap {
       refreshExpiredTiles: false,
     });
     this.map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+
+    // 仅用户手势(带 originalEvent)才算交互，程序动画不影响首屏取景自愈
+    this.map.on("movestart", (e) => {
+      if (e.originalEvent) this.userInteracted = true;
+    });
+    // 手机切后台再切回：画布可能被系统回收/尺寸失真，强制同步并重绘补齐瓦片
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) return;
+      this.map.resize();
+      this.map.triggerRepaint();
+    });
   }
 
   private get isSmall(): boolean {
@@ -426,22 +438,89 @@ export class TyphoonMap {
     return stateAtTime(this.data!.points, t);
   }
 
-  /** 视野覆盖实测 + 全部预报路径（padding 按视口自适应，避免小屏被挤出画面） */
+  /**
+   * 视野覆盖实测 + 全部预报路径。
+   * 关键健壮性：手机 webview 首屏地址栏伸缩 / 移动端 DOM 重排后，画布尺寸可能滞后，
+   * 若 padding 超过画布，MapLibre 会静默放弃取景，地图停在错误镜头（看似"缩放失败"）。
+   * 因此：取景前强制同步画布 → padding 按真实 DOM 测量 → 装不下时按比例压缩 → 仍失败则最小 padding 兜底。
+   */
   fitToData(): void {
     if (!this.data) return;
     const bounds = new maplibregl.LngLatBounds();
     for (const p of this.data.points) bounds.extend([p.lng, p.lat]);
     for (const fc of this.data.forecasts) for (const q of fc.points) bounds.extend([q.lng, q.lat]);
 
-    let padding: maplibregl.PaddingOptions;
+    this.map.resize(); // 先同步画布与容器，杜绝用旧尺寸计算相机
+    const box = this.map.getContainer();
+    const W = box.clientWidth || window.innerWidth;
+    const H = box.clientHeight || window.innerHeight;
+
+    let padding: { top: number; bottom: number; left: number; right: number };
     if (this.isSmall) {
-      // 顶部让位实况条，底部让位时间轴 + peek 抽屉
-      padding = { top: 120, bottom: 170, left: 20, right: 20 };
+      // 顶部(实况条+预警条)与底部(时间轴)遮挡按真实 DOM 实测，不写死像素
+      const topUi = Math.max(
+        document.getElementById("mstats")?.getBoundingClientRect().bottom ?? 0,
+        document.getElementById("alert-banner")?.getBoundingClientRect().bottom ?? 0,
+        96,
+      );
+      const tlTop = document.getElementById("timeline")?.getBoundingClientRect().top ?? H - 170;
+      padding = {
+        top: Math.round(Math.min(topUi + 10, H * 0.4)),
+        bottom: Math.round(Math.min(Math.max(H - tlTop + 10, 150), H * 0.45)),
+        left: 16,
+        right: 16,
+      };
     } else {
       const drawerOpen = document.body.classList.contains("drawer-open") && window.innerWidth >= 1100;
       padding = { top: 110, bottom: 140, left: 360, right: drawerOpen ? 420 : 70 };
     }
-    this.map.fitBounds(bounds, { padding, duration: 1600, essential: true });
+
+    // 画布装不下 padding 时按比例压缩，保证取景计算永不失败
+    const shrink = Math.min(
+      1,
+      (H - 90) / Math.max(1, padding.top + padding.bottom),
+      (W - 60) / Math.max(1, padding.left + padding.right),
+    );
+    if (shrink < 1) {
+      padding = {
+        top: Math.floor(padding.top * shrink),
+        bottom: Math.floor(padding.bottom * shrink),
+        left: Math.floor(padding.left * shrink),
+        right: Math.floor(padding.right * shrink),
+      };
+    }
+
+    const cam =
+      this.map.cameraForBounds(bounds, { padding }) ??
+      this.map.cameraForBounds(bounds, { padding: 24 });
+    if (cam) this.map.easeTo({ ...cam, duration: 1600, essential: true });
+  }
+
+  /**
+   * 首屏取景自愈：加载后 12 秒内视口尺寸明显变化（webview 地址栏收起、dvh 稳定、旋屏）
+   * 且用户尚未操作地图时，自动重新取景，确保台风始终完整入镜。
+   */
+  armFitSelfHeal(): void {
+    const started = Date.now();
+    let lastW = window.innerWidth;
+    let lastH = window.innerHeight;
+    let tid = 0;
+    const stop = (): void => window.removeEventListener("resize", onResize);
+    const onResize = (): void => {
+      if (this.userInteracted || Date.now() - started > 12_000) {
+        stop();
+        return;
+      }
+      if (Math.abs(window.innerWidth - lastW) < 24 && Math.abs(window.innerHeight - lastH) < 24) return;
+      window.clearTimeout(tid);
+      tid = window.setTimeout(() => {
+        lastW = window.innerWidth;
+        lastH = window.innerHeight;
+        this.fitToData();
+      }, 280);
+    };
+    window.addEventListener("resize", onResize);
+    window.setTimeout(stop, 12_500);
   }
 
   private src(id: string): maplibregl.GeoJSONSource {

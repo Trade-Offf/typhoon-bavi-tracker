@@ -379,6 +379,8 @@ body.is-playing .play-btn .icon-pause { display: block; }
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: none;
+  white-space: nowrap;
   font-size: 12px;
   font-weight: 600;
   color: #fff;
@@ -391,6 +393,7 @@ body.is-playing .play-btn .icon-pause { display: block; }
   box-shadow: 0 2px 14px rgba(255, 49, 49, 0.35);
   transition: transform 0.15s, box-shadow 0.15s;
 }
+#btn-share svg { flex: none; }
 #btn-share:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255, 49, 49, 0.5); }
 
 /* ———— 扫码转发弹窗 ———— */
@@ -887,23 +890,27 @@ body.drawer-open #drawer-open { display: none; }
 @media (max-width: 760px) {
   body { font-size: 14px; }
 
-  /* 顶栏：紧凑，加安全区 */
+  /* 顶栏：单行不换行，空间锁死 */
   #topbar {
     padding: calc(env(safe-area-inset-top) + 8px) 12px 8px;
-    align-items: flex-start;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
   }
-  .brand { gap: 9px; }
-  .brand-eye { width: 26px; height: 26px; border-width: 2.5px; }
+  .brand { gap: 8px; flex: none; }
+  .brand-eye { width: 24px; height: 24px; border-width: 2.5px; }
   .brand-eye::after { inset: 7px; }
-  .brand-text h1 { font-size: 16px; }
+  .brand-text h1 { font-size: 15px; white-space: nowrap; }
+  .brand-text .en { font-size: 11px; }
   .brand-text .sub { display: none; }
-  .topbar-right { gap: 8px; }
-  #btn-share { padding: 7px 12px; font-size: 12px; }
+  .topbar-right { flex: 1; min-width: 0; gap: 8px; justify-content: flex-end; }
+  #btn-share { padding: 7px 13px; font-size: 12px; }
   .datastamp {
     display: block;
-    font-size: 10.5px;
-    padding: 5px 10px;
-    max-width: 42vw;
+    font-size: 10px;
+    padding: 5px 9px;
+    min-width: 0;
+    flex: 0 1 auto;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -954,12 +961,15 @@ body.drawer-open #drawer-open { display: none; }
   #mstats .stat small { font-size: 9px; margin-left: 2px; }
   #mstats .pos-row { display: none; }
 
-  /* 波及预警条：移到实况条下方 */
+  /* 波及预警条：移到实况条下方，单行不折行 */
   #alert-banner {
-    top: calc(env(safe-area-inset-top) + 96px);
+    top: calc(env(safe-area-inset-top) + 98px);
     font-size: 12px;
-    padding: 7px 14px;
+    padding: 6px 14px;
     max-width: calc(100vw - 24px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* 底部抽屉：三档位 bottom sheet（transform 由 JS 控制） */
@@ -1019,13 +1029,19 @@ body.drawer-open #drawer-open { display: none; }
     white-space: nowrap;
     flex: none;
   }
-  .drawer-panel { padding: 12px 16px calc(24px + env(safe-area-inset-bottom)); }
+  /* 关键：抽屉用 translateY 下移后，被移出屏幕的高度(--sheet-hidden 由 JS 同步)
+     必须从滚动区裁掉，否则 half 档滚到底时最后几项永远停留在屏幕之外 */
+  .drawer-panel {
+    bottom: var(--sheet-hidden, 0px);
+    /* 安全区已由 #drawer 的 padding-bottom 承担，这里只留呼吸空间 */
+    padding: 12px 16px 24px;
+  }
 
-  /* 时间轴：置于 peek 抽屉上方，加大触控区 */
+  /* 时间轴：置于 peek 抽屉上方，加大触控区，避让底部安全区 */
   #timeline {
     left: 8px;
     right: 8px;
-    bottom: 104px;
+    bottom: calc(104px + env(safe-area-inset-bottom));
     width: auto;
     transform: none;
     padding: 9px 14px;

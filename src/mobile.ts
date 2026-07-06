@@ -106,19 +106,47 @@ function drawerHeight(): number {
   return d ? d.offsetHeight : Math.round(window.innerHeight * 0.86);
 }
 
+/** 实测手机底部安全区(home 指示条)高度,env() 在部分内嵌浏览器读不到时回退 0 */
+let cachedSafe = -1;
+function safeBottomPx(): number {
+  if (cachedSafe >= 0) return cachedSafe;
+  const probe = document.createElement("div");
+  probe.style.cssText =
+    "position:fixed;left:-9999px;bottom:0;width:0;height:env(safe-area-inset-bottom,0px);";
+  document.body.appendChild(probe);
+  cachedSafe = probe.offsetHeight;
+  probe.remove();
+  return cachedSafe;
+}
+
+/** peek 档露出高度:手柄 + Tab 条 + 底部安全区 + 呼吸间距,保证 Tab 不贴边、不被 home 条挡住 */
+function peekReveal(): number {
+  const handle = el<HTMLElement>("#drawer-handle");
+  const tabs = el<HTMLElement>(".drawer-tabs");
+  const base = (handle?.offsetHeight ?? 24) + (tabs?.offsetHeight ?? 46);
+  return base + safeBottomPx() + 14;
+}
+
 function translateFor(state: "peek" | "half" | "full"): number {
   const h = drawerHeight();
   const wh = window.innerHeight;
   if (state === "full") return 0;
   if (state === "half") return Math.max(0, h - Math.round(wh * 0.52));
-  return Math.max(0, h - 96); // peek: 露出手柄 + Tab 条
+  return Math.max(0, h - peekReveal()); // peek: 露出手柄 + Tab 条 + 安全区
+}
+
+/** 同步抽屉位移：transform 下移多少，滚动区就要相应裁掉多少(--sheet-hidden)，
+ *  否则 half 档滚到底时最后几项(如杭州)永远停在屏幕外，属可用性硬伤 */
+function applyTranslate(d: HTMLElement, ty: number): void {
+  d.style.transform = `translateY(${ty}px)`;
+  d.style.setProperty("--sheet-hidden", `${Math.max(0, ty)}px`);
 }
 
 function setDetent(state: "peek" | "half" | "full"): void {
   detent = state;
   const d = el<HTMLElement>("#drawer");
   if (!d) return;
-  d.style.transform = `translateY(${translateFor(state)}px)`;
+  applyTranslate(d, translateFor(state));
   document.body.classList.toggle("sheet-open", state !== "peek");
 }
 
@@ -143,8 +171,8 @@ function initSheet(): void {
   const onMove = (e: PointerEvent): void => {
     if (!dragging) return;
     const dy = e.clientY - startY;
-    const next = Math.min(Math.max(0, startTranslate + dy), drawerHeight() - 72);
-    d.style.transform = `translateY(${next}px)`;
+    const next = Math.min(Math.max(0, startTranslate + dy), translateFor("peek"));
+    applyTranslate(d, next);
   };
   const onUp = (e: PointerEvent): void => {
     if (!dragging) return;
@@ -200,6 +228,7 @@ function applyDesktop(): void {
   const d = el<HTMLElement>("#drawer");
   if (d) {
     d.style.transform = "";
+    d.style.removeProperty("--sheet-hidden");
     d.classList.add("open");
   }
   document.body.classList.add("drawer-open");
@@ -217,6 +246,7 @@ export function initMobile(): void {
   window.addEventListener("resize", () => {
     window.clearTimeout(rt);
     rt = window.setTimeout(() => {
+      cachedSafe = -1; // 横竖屏切换后重新实测安全区
       if (mq.matches && detent) setDetent(detent);
     }, 200);
   });
