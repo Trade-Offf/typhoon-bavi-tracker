@@ -9,10 +9,11 @@
  * 同时把上游压力隔离在边缘节点。
  */
 import { normalizeZj, normalizeNmc, type TyphoonData } from "./normalize";
-import { fetchNews } from "./news";
+import { fetchNews, type NewsData } from "./news";
 
 interface Env {
   ASSETS: Fetcher;
+  NEWS_KV: KVNamespace;
 }
 
 const CACHE_TTL = 300; // 秒
@@ -110,42 +111,80 @@ async function handleTyphoon(request: Request, tfid: string): Promise<Response> 
   return response;
 }
 
-const NEWS_CACHE_TTL = 600; // 资讯缓存 10 分钟
+const NEWS_KEYWORD = "台风巴威";
+const NEWS_FRESH_TTL = 300; // 边缘新鲜缓存 5 分钟
+const NEWS_KV_KEY = "news:bavi:v5"; // KV 全局键（cron 持续刷新）
+const NEWS_KV_TTL = 172_800; // KV 保留 48 小时，远超 cron 周期
+const NEWS_STALE_MS = 45 * 60 * 1000; // 超过 45 分钟未更新即视为陈旧
 
-async function handleNews(request: Request): Promise<Response> {
+/** 抓取新闻并写入 KV，作为全局“最近一次成功结果”。供 cron 与冷启动共用。 */
+async function refreshNews(env: Env): Promise<NewsData> {
+  const data = await fetchNews(NEWS_KEYWORD, 30);
+  await env.NEWS_KV.put(NEWS_KV_KEY, JSON.stringify(data), { expirationTtl: NEWS_KV_TTL });
+  return data;
+}
+
+async function handleNews(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const cache = (caches as unknown as { default: Cache }).default;
-  const cacheKey = new Request(new URL("/api/news/bavi-v3", request.url).toString());
-  const cached = await cache.match(cacheKey);
-  if (cached) return cached;
+  const origin = new URL(request.url).origin;
+  const freshKey = new Request(`${origin}/api/news/fresh-v5`);
+  const fresh = await cache.match(freshKey);
+  if (fresh) return fresh;
 
-  try {
-    const data = await fetchNews("台风巴威", 30);
-    const response = new Response(JSON.stringify(data), {
-      headers: { ...JSON_HEADERS, "cache-control": `public, max-age=${NEWS_CACHE_TTL}` },
-    });
-    await cache.put(cacheKey, response.clone());
-    return response;
-  } catch (e) {
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
-      status: 502,
-      headers: { ...JSON_HEADERS, "cache-control": "no-store" },
-    });
+  // KV 为主数据源（由 cron 每几分钟刷新），用户请求与上游抖动完全解耦
+  let body = await env.NEWS_KV.get(NEWS_KV_KEY);
+
+  if (!body) {
+    // 冷启动：KV 尚无数据，实时抓一次兜底
+    try {
+      body = JSON.stringify(await refreshNews(env));
+    } catch (e) {
+      return new Response(JSON.stringify({ error: (e as Error).message }), {
+        status: 502,
+        headers: { ...JSON_HEADERS, "cache-control": "no-store" },
+      });
+    }
+  } else {
+    // 后台异步刷新，不阻塞本次响应，保持 KV 新鲜
+    ctx.waitUntil(refreshNews(env).catch(() => {}));
   }
+
+  // 标注陈旧度，供前端提示
+  try {
+    const parsed = JSON.parse(body) as NewsData;
+    if (Date.now() - Date.parse(parsed.fetchedAt) > NEWS_STALE_MS) {
+      parsed.stale = true;
+      body = JSON.stringify(parsed);
+    }
+  } catch {
+    /* 解析失败则原样返回 */
+  }
+
+  const resp = new Response(body, {
+    headers: { ...JSON_HEADERS, "cache-control": `public, max-age=${NEWS_FRESH_TTL}` },
+  });
+  ctx.waitUntil(cache.put(freshKey, resp.clone()));
+  return resp;
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/health") {
       return new Response(JSON.stringify({ ok: true, ts: Date.now() }), { headers: JSON_HEADERS });
     }
 
-    if (url.pathname === "/api/news") return handleNews(request);
+    if (url.pathname === "/api/news") return handleNews(request, env, ctx);
 
     const m = url.pathname.match(/^\/api\/typhoon\/(\w+)$/);
     if (m) return handleTyphoon(request, m[1]);
 
     return env.ASSETS.fetch(request);
+  },
+
+  // Cron：后台持续抓取新闻并写入 KV，让用户请求永远读到新鲜兜底数据
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(refreshNews(env).catch(() => {}));
   },
 } satisfies ExportedHandler<Env>;

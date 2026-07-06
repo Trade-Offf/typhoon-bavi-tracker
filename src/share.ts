@@ -1,4 +1,5 @@
 /** 转发扩散：二维码弹窗（动态加载 qrcode，不阻塞首屏） */
+import { isMobile } from "./mobile";
 
 export interface SharePayload {
   title: string;
@@ -87,8 +88,31 @@ export async function openShareModal(payload: SharePayload): Promise<void> {
   el.querySelector("#share-desc")!.textContent = payload.text;
   el.querySelector("#share-url")!.textContent = payload.url;
 
+  const hasShare = typeof navigator.share === "function";
   const nativeBtn = el.querySelector("#share-native") as HTMLButtonElement;
-  nativeBtn.hidden = !navigator.share;
+  const copyBtn = el.querySelector("#share-copy") as HTMLButtonElement;
+  const actions = el.querySelector(".share-actions") as HTMLElement;
+  const hint = el.querySelector(".share-hint") as HTMLElement;
+  const title = el.querySelector("#share-title") as HTMLElement;
+
+  nativeBtn.hidden = !hasShare;
+  // 手机端优先「系统分享」：可直接发给微信/朋友，扫自己屏幕的二维码没意义
+  if (hasShare) {
+    nativeBtn.classList.add("primary");
+    copyBtn.classList.remove("primary");
+    actions.insertBefore(nativeBtn, actions.firstChild);
+  } else {
+    copyBtn.classList.add("primary");
+  }
+
+  if (isMobile()) {
+    title.textContent = "转发给身边人 · 提前预警";
+    hint.textContent = hasShare
+      ? "点「系统分享」发到微信/群聊，或长按二维码保存"
+      : "复制链接发给好友，或保存二维码图片";
+  } else {
+    hint.textContent = "微信扫一扫 · 或保存图片发到群聊";
+  }
 
   const QRCode = await import("qrcode");
   await QRCode.toCanvas(qrCanvas!, payload.url, {

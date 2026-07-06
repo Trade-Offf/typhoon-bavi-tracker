@@ -12,6 +12,15 @@
     "directory": "./dist",
     "binding": "ASSETS"
   },
+  "kv_namespaces": [
+    {
+      "binding": "NEWS_KV",
+      "id": "70c16e5a374146de89b52773783653f8"
+    }
+  ],
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
   "observability": {
     "enabled": true
   }

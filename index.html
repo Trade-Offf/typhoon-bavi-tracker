@@ -39,37 +39,42 @@
     </div>
   </header>
 
+  <!-- 移动端常驻实况条（小屏时由 mobile 布局注入 HUD 统计块） -->
+  <div id="mstats" aria-hidden="true"></div>
+
   <!-- 左侧 HUD 信息面板 -->
   <aside id="hud" aria-label="台风实时状态">
-    <div class="hud-badge-row">
-      <span class="intensity-badge" id="hud-badge">—</span>
-      <span class="live-dot" id="live-dot" title="实况更新中"></span>
+    <div id="hud-stats">
+      <div class="hud-badge-row">
+        <span class="intensity-badge" id="hud-badge">—</span>
+        <span class="live-dot" id="live-dot" title="实况更新中"></span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><label>中心风速</label><b id="s-speed">—</b><small>m/s</small></div>
+        <div class="stat"><label>中心气压</label><b id="s-pressure">—</b><small>hPa</small></div>
+        <div class="stat"><label>风力等级</label><b id="s-power">—</b><small>级</small></div>
+        <div class="stat"><label>移动</label><b id="s-move">—</b><small id="s-move-unit">km/h</small></div>
+      </div>
+      <div class="pos-row" id="s-pos">—</div>
     </div>
-    <div class="stat-grid">
-      <div class="stat"><label>中心风速</label><b id="s-speed">—</b><small>m/s</small></div>
-      <div class="stat"><label>中心气压</label><b id="s-pressure">—</b><small>hPa</small></div>
-      <div class="stat"><label>风力等级</label><b id="s-power">—</b><small>级</small></div>
-      <div class="stat"><label>移动</label><b id="s-move">—</b><small id="s-move-unit">km/h</small></div>
-    </div>
-    <div class="pos-row" id="s-pos">—</div>
 
-    <div class="hud-section">
+    <div class="hud-section" id="sec-impact">
       <h2>城市波及倒计时</h2>
       <div id="impact-list" class="impact-list"></div>
     </div>
 
-    <div class="hud-section">
+    <div class="hud-section" id="sec-agency">
       <h2>预报机构对比</h2>
       <div id="agency-list" class="agency-list"></div>
     </div>
 
-    <div class="hud-section">
+    <div class="hud-section" id="sec-legend">
       <h2>强度等级</h2>
       <div id="legend" class="legend"></div>
     </div>
 
     <div class="hud-foot" id="hud-foot">数据来源加载中…</div>
-    <div class="hud-links">
+    <div class="hud-links" id="hud-links">
       <a href="https://github.com/Trade-Offf/typhoon-bavi-tracker" target="_blank" rel="noopener">GitHub 开源 · 欢迎共建</a>
       <a href="http://typhoon.nmc.cn/web.html" target="_blank" rel="noopener">中央气象台官方</a>
       <span>信息仅供参考，请以官方预警为准</span>
@@ -82,8 +87,9 @@
     <span id="slogan-text">风雨同舟，守望相助</span>
   </div>
 
-  <!-- 右侧信息抽屉 -->
+  <!-- 右侧信息抽屉（移动端为底部抽屉） -->
   <aside id="drawer" class="open" aria-label="资讯与应对指南">
+    <button id="drawer-handle" type="button" aria-label="拖动调整面板高度"><span></span></button>
     <div class="drawer-tabs" role="tablist">
       <button class="drawer-tab active" data-panel="news" role="tab">实时资讯</button>
       <button class="drawer-tab" data-panel="guide" role="tab">应对指南</button>

@@ -4,9 +4,10 @@ import { TyphoonMap } from "./map";
 import type { TyphoonData } from "./types";
 import { intensityOf, INTENSITY_ORDER, agencyColor } from "./intensity";
 import { renderGuide } from "./guide";
-import { initNews } from "./news";
+import { initNews, refreshNews } from "./news";
 import { initSlogans } from "./slogan";
 import { openShareModal } from "./share";
+import { initMobile } from "./mobile";
 import { computeImpacts, formatEta, type CityImpact } from "./impact";
 
 const TYPHOON_ID = "202609"; // 2026 年第 9 号台风 巴威 BAVI
@@ -26,6 +27,8 @@ class Playback {
   private raf = 0;
   private lastFrame = 0;
   private pulsePhase = 0;
+  private pulseAccum = 0;
+  private reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   constructor(private onFrame: (t: number) => void) {}
 
@@ -89,11 +92,19 @@ class Playback {
         this.onFrame(this.t);
       }
     }
-    this.pulsePhase = (this.pulsePhase + dt / 2600) % 1;
-    try {
-      tmap.tickPulse(tmap.stateAt(this.t), this.pulsePhase);
-    } catch {
-      /* 数据未就绪 */
+
+    // 脉冲动画：偏好减少动态时关闭；否则节流到 ~30fps 降低移动端 GPU 负担
+    if (!this.reduceMotion) {
+      this.pulsePhase = (this.pulsePhase + dt / 2600) % 1;
+      this.pulseAccum += dt;
+      if (this.pulseAccum >= 33) {
+        this.pulseAccum = 0;
+        try {
+          tmap.tickPulse(tmap.stateAt(this.t), this.pulsePhase);
+        } catch {
+          /* 数据未就绪 */
+        }
+      }
     }
   };
 }
@@ -175,8 +186,7 @@ function applyData(d: TyphoonData, first: boolean): void {
 
   $("#t-start").textContent = pts[0].time.slice(5);
   $("#t-end").textContent = "现在";
-  $("#datastamp").innerHTML =
-    `数据截至 <b>${pts[pts.length - 1].time}</b>（北京时间）` + (d.active ? "" : " · 已停编");
+  updateFreshness();
   $("#hud-foot").textContent = `来源：${d.source}`;
 
   renderAgencyList(d);
@@ -312,15 +322,15 @@ function wireControls(): void {
     }
   });
 
-  // 右侧抽屉：Tab 切换与展开收起
+  // 右侧抽屉：Tab 切换（事件委托，兼容移动端动态新增的 Tab）与展开收起
   const drawer = $("#drawer");
-  document.querySelectorAll<HTMLButtonElement>(".drawer-tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".drawer-tab").forEach((t) => t.classList.remove("active"));
-      document.querySelectorAll(".drawer-panel").forEach((p) => p.classList.remove("active"));
-      tab.classList.add("active");
-      $(`#panel-${tab.dataset.panel}`).classList.add("active");
-    });
+  $(".drawer-tabs").addEventListener("click", (e) => {
+    const tab = (e.target as HTMLElement).closest<HTMLButtonElement>(".drawer-tab");
+    if (!tab || !tab.dataset.panel) return;
+    document.querySelectorAll(".drawer-tab").forEach((t) => t.classList.remove("active"));
+    document.querySelectorAll(".drawer-panel").forEach((p) => p.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById(`panel-${tab.dataset.panel}`)?.classList.add("active");
   });
   $("#drawer-close").addEventListener("click", () => {
     drawer.classList.remove("open");
@@ -337,33 +347,83 @@ function wireControls(): void {
   });
 }
 
-/** ———— 启动 ———— */
+/** ———— 数据新鲜度 ———— */
+let lastFetchAt = 0;
+let refreshTimer = 0;
+
+function updateFreshness(): void {
+  const stamp = document.getElementById("datastamp");
+  if (!stamp || !data) return;
+  const last = data.points[data.points.length - 1];
+  let tail: string;
+  let stale = false;
+  if (!lastFetchAt) {
+    tail = "";
+  } else {
+    const min = Math.floor((Date.now() - lastFetchAt) / 60000);
+    stale = min >= 15;
+    tail = stale ? " · ⚠ 数据可能滞后，以官方预警为准" : min < 1 ? " · 刚刚同步" : ` · ${min} 分钟前同步`;
+  }
+  stamp.classList.toggle("stale", stale);
+  stamp.innerHTML = `数据截至 <b>${last.time}</b>（北京时间）${data.active ? "" : " · 已停编"}${tail}`;
+}
+
+/** ———— 启动与自动刷新（失败退避重试） ———— */
+async function refresh(first: boolean): Promise<void> {
+  const d = await fetchData();
+  lastFetchAt = Date.now();
+  applyData(d, first);
+}
+
+function scheduleRefresh(ms: number): void {
+  clearTimeout(refreshTimer);
+  refreshTimer = window.setTimeout(runRefresh, ms);
+}
+
+async function runRefresh(): Promise<void> {
+  try {
+    await refresh(false);
+    scheduleRefresh(REFRESH_MS);
+  } catch {
+    // 失败不静默：30 秒退避重试一次，并刷新时效提示
+    updateFreshness();
+    scheduleRefresh(30_000);
+  }
+}
+
 async function initialLoad(): Promise<void> {
   try {
-    applyData(await fetchData(), true);
+    await refresh(true);
   } catch (err) {
     $("#loading").innerHTML =
       `<div class="spinner"></div><p class="err">数据获取失败：${(err as Error).message}<br/>10 秒后自动重试…</p>`;
     setTimeout(initialLoad, 10_000);
     return;
   }
-  setInterval(async () => {
-    try {
-      applyData(await fetchData(), false);
-    } catch {
-      /* 静默容错，下个周期重试 */
-    }
-  }, REFRESH_MS);
+  scheduleRefresh(REFRESH_MS);
 }
+
+// 时效提示每 30 秒刷新一次
+setInterval(updateFreshness, 30_000);
+
+// 切回前台：数据超过 2 分钟立即刷新（手机切后台是常态）
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  if (lastFetchAt && Date.now() - lastFetchAt > 120_000) {
+    runRefresh();
+    refreshNews();
+  }
+});
 
 wireControls();
 renderGuide($("#panel-guide"));
 initSlogans();
 // 资讯面板延迟加载，优先渲染地图与台风数据
 setTimeout(initNews, 2500);
-document.body.classList.add("drawer-open");
-// 小屏默认收起抽屉，把地图让给主视野
-if (window.innerWidth < 1100) {
+// 布局编排：移动端合并为底部抽屉，桌面维持左右分栏
+initMobile();
+// 中屏（平板：761–1099）默认收起右侧抽屉，把地图让给主视野
+if (window.innerWidth >= 761 && window.innerWidth < 1100) {
   $("#drawer").classList.remove("open");
   document.body.classList.remove("drawer-open");
 }

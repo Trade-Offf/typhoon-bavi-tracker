@@ -65,8 +65,16 @@ export class TyphoonMap {
       center: [138, 18],
       zoom: 4,
       attributionControl: { compact: true },
+      // 移动端 GPU 敏感：限制像素比、关闭瓦片淡入与过期刷新以省算力
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+      fadeDuration: 0,
+      refreshExpiredTiles: false,
     });
     this.map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+  }
+
+  private get isSmall(): boolean {
+    return window.matchMedia("(max-width: 760px)").matches;
   }
 
   onReady(cb: () => void): void {
@@ -125,8 +133,11 @@ export class TyphoonMap {
       id: "track-glow", type: "line", source: "track-progress",
       layout: { "line-cap": "round", "line-join": "round" },
       paint: {
-        "line-color": ["get", "color"], "line-width": 9,
-        "line-opacity": 0.22, "line-blur": 6,
+        // 移动端收窄辉光并降低模糊半径，减轻 GPU 负担
+        "line-color": ["get", "color"],
+        "line-width": this.isSmall ? 5 : 9,
+        "line-opacity": 0.22,
+        "line-blur": this.isSmall ? 3 : 6,
       },
     });
     map.addLayer({
@@ -184,7 +195,12 @@ export class TyphoonMap {
 
   private bindPopups(): void {
     const map = this.map;
-    const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10, maxWidth: "280px" });
+    const popup = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      offset: 10,
+      maxWidth: this.isSmall ? "260px" : "280px",
+    });
     const show = (e: maplibregl.MapLayerMouseEvent) => {
       const f = e.features?.[0];
       if (!f) return;
@@ -196,9 +212,22 @@ export class TyphoonMap {
       popup.remove();
     };
     for (const layer of ["track-points-c", "forecast-points-c"]) {
+      // 桌面 hover 预览
       map.on("mousemove", layer, show);
       map.on("mouseleave", layer, hide);
+      // 触屏点击查看详情（hover 在触屏不可用）
+      map.on("click", layer, (e) => {
+        show(e);
+        e.originalEvent?.stopPropagation();
+      });
     }
+    // 触屏点空白处关闭点位详情
+    map.on("click", (e) => {
+      const hits = map.queryRenderedFeatures(e.point, {
+        layers: ["track-points-c", "forecast-points-c"],
+      });
+      if (hits.length === 0) popup.remove();
+    });
   }
 
   /** 全量数据更新（首次与每次自动刷新时调用） */
@@ -299,7 +328,9 @@ export class TyphoonMap {
     const im = this.impacts.find((x) => x.name === name);
     if (!im) return;
     if (fly) {
-      this.map.flyTo({ center: [im.lng, im.lat], zoom: Math.max(this.map.getZoom(), 6.2), duration: 1200 });
+      // 移动端把城市推到画面上三分之一，避开底部抽屉与时间轴
+      const offset: [number, number] = this.isSmall ? [0, -Math.round(window.innerHeight * 0.18)] : [0, 0];
+      this.map.flyTo({ center: [im.lng, im.lat], zoom: Math.max(this.map.getZoom(), 6.2), offset, duration: 1200 });
     }
     this.cityPopup?.remove();
     this.cityPopup = new maplibregl.Popup({ closeButton: true, offset: 30, maxWidth: "300px" })
@@ -395,18 +426,22 @@ export class TyphoonMap {
     return stateAtTime(this.data!.points, t);
   }
 
-  /** 视野覆盖实测 + 全部预报路径 */
+  /** 视野覆盖实测 + 全部预报路径（padding 按视口自适应，避免小屏被挤出画面） */
   fitToData(): void {
     if (!this.data) return;
     const bounds = new maplibregl.LngLatBounds();
     for (const p of this.data.points) bounds.extend([p.lng, p.lat]);
     for (const fc of this.data.forecasts) for (const q of fc.points) bounds.extend([q.lng, q.lat]);
-    const drawerOpen = document.body.classList.contains("drawer-open") && window.innerWidth >= 1100;
-    this.map.fitBounds(bounds, {
-      padding: { top: 110, bottom: 140, left: 360, right: drawerOpen ? 420 : 70 },
-      duration: 1600,
-      essential: true,
-    });
+
+    let padding: maplibregl.PaddingOptions;
+    if (this.isSmall) {
+      // 顶部让位实况条，底部让位时间轴 + peek 抽屉
+      padding = { top: 120, bottom: 170, left: 20, right: 20 };
+    } else {
+      const drawerOpen = document.body.classList.contains("drawer-open") && window.innerWidth >= 1100;
+      padding = { top: 110, bottom: 140, left: 360, right: drawerOpen ? 420 : 70 };
+    }
+    this.map.fitBounds(bounds, { padding, duration: 1600, essential: true });
   }
 
   private src(id: string): maplibregl.GeoJSONSource {

@@ -85,6 +85,11 @@ body {
   -webkit-backdrop-filter: blur(12px);
 }
 .datastamp b { color: var(--ink); font-family: var(--mono); font-weight: 600; }
+.datastamp.stale {
+  color: #ffcf8f;
+  border-color: rgba(255, 150, 54, 0.5);
+  background: rgba(255, 150, 54, 0.12);
+}
 
 /* ———— 左侧 HUD ———— */
 #hud {
@@ -850,8 +855,12 @@ body.drawer-open #drawer-open { display: none; }
 .guide-during li::before { background: rgba(255, 92, 92, 0.7); }
 .guide-during li { color: #c9d4e8; }
 
-/* ———— 响应式 ———— */
-@media (max-width: 1100px) {
+/* 默认（桌面）隐藏移动端专属元素 */
+#mstats { display: none; }
+#drawer-handle { display: none; }
+
+/* ———— 平板（761–1099）：右侧抽屉转底部弹层 ———— */
+@media (max-width: 1100px) and (min-width: 761px) {
   #drawer {
     top: auto;
     right: 0;
@@ -872,23 +881,187 @@ body.drawer-open #drawer-open { display: none; }
   #slogan-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 
+/* ———————————————————————————————————————
+   移动端（≤760px）：地图全屏 + 顶部常驻实况条 + 底部三档位抽屉
+——————————————————————————————————————— */
 @media (max-width: 760px) {
-  #hud {
-    top: auto; bottom: 108px; left: 10px;
-    width: calc(100vw - 20px);
-    max-height: 34vh;
-    padding: 12px;
+  body { font-size: 14px; }
+
+  /* 顶栏：紧凑，加安全区 */
+  #topbar {
+    padding: calc(env(safe-area-inset-top) + 8px) 12px 8px;
+    align-items: flex-start;
   }
-  #topbar { padding: 10px 12px; }
-  .datastamp { display: none; }
-  #timeline { bottom: 10px; padding: 9px 12px; gap: 9px; }
-  .speed-group { display: none; }
-  .stat b { font-size: 17px; }
+  .brand { gap: 9px; }
+  .brand-eye { width: 26px; height: 26px; border-width: 2.5px; }
+  .brand-eye::after { inset: 7px; }
+  .brand-text h1 { font-size: 16px; }
+  .brand-text .sub { display: none; }
+  .topbar-right { gap: 8px; }
+  #btn-share { padding: 7px 12px; font-size: 12px; }
+  .datastamp {
+    display: block;
+    font-size: 10.5px;
+    padding: 5px 10px;
+    max-width: 42vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* 桌面 HUD 容器隐藏（内容已迁移到 #mstats 与抽屉） */
+  #hud { display: none; }
+
+  /* 常驻实况条：始终可见的关键数据 */
+  #mstats {
+    display: block;
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 46px);
+    left: 8px;
+    right: 8px;
+    z-index: 18;
+  }
+  #mstats #hud-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    backdrop-filter: blur(8px) saturate(1.2);
+    -webkit-backdrop-filter: blur(8px) saturate(1.2);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  #mstats #hud-stats::-webkit-scrollbar { display: none; }
+  #mstats .hud-badge-row { margin: 0; flex: none; }
+  #mstats .intensity-badge { font-size: 12px; padding: 4px 9px; letter-spacing: 0.08em; }
+  #mstats .stat-grid { display: flex; gap: 14px; flex: none; }
+  #mstats .stat {
+    background: transparent;
+    border: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: max-content;
+  }
+  #mstats .stat label { font-size: 9px; margin-bottom: 1px; letter-spacing: 0.04em; }
+  #mstats .stat b { font-size: 16px; }
+  #mstats .stat small { font-size: 9px; margin-left: 2px; }
+  #mstats .pos-row { display: none; }
+
+  /* 波及预警条：移到实况条下方 */
+  #alert-banner {
+    top: calc(env(safe-area-inset-top) + 96px);
+    font-size: 12px;
+    padding: 7px 14px;
+    max-width: calc(100vw - 24px);
+  }
+
+  /* 底部抽屉：三档位 bottom sheet（transform 由 JS 控制） */
+  #drawer {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 86dvh;
+    max-height: 86dvh;
+    border-radius: 20px 20px 0 0;
+    transform: translateY(calc(86dvh - 96px));
+    transition: transform 0.32s cubic-bezier(0.3, 0.9, 0.3, 1);
+    backdrop-filter: blur(10px) saturate(1.2);
+    -webkit-backdrop-filter: blur(10px) saturate(1.2);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.4);
+  }
+  #drawer.dragging { transition: none; }
+  #drawer-open { display: none; }
+  #drawer-close { display: none; }
+
+  /* 拖拽手柄 */
+  #drawer-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: grab;
+    touch-action: none;
+    flex: none;
+  }
+  #drawer-handle span {
+    width: 40px;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--ink-faint);
+  }
+  #drawer-handle:active { cursor: grabbing; }
+
+  /* Tab 条：可横向滚动，触控友好 */
+  .drawer-tabs {
+    padding: 2px 10px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .drawer-tabs::-webkit-scrollbar { display: none; }
+  .drawer-tab {
+    font-size: 14px;
+    padding: 10px 13px 12px;
+    white-space: nowrap;
+    flex: none;
+  }
+  .drawer-panel { padding: 12px 16px calc(24px + env(safe-area-inset-bottom)); }
+
+  /* 时间轴：置于 peek 抽屉上方，加大触控区 */
+  #timeline {
+    left: 8px;
+    right: 8px;
+    bottom: 104px;
+    width: auto;
+    transform: none;
+    padding: 9px 14px;
+    gap: 12px;
+    z-index: 20;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .play-btn { width: 44px; height: 44px; }
+  #scrubber { height: 6px; }
+  #scrubber::-webkit-slider-thumb {
+    width: 24px; height: 24px;
+    border-width: 4px;
+  }
+  #scrubber::-moz-range-thumb { width: 22px; height: 22px; border-width: 4px; }
+  .speed-btn { padding: 7px 10px; font-size: 12px; }
+
+  /* 触控目标 ≥44px */
+  .impact-row { padding: 11px 9px; }
+  .impact-name { font-size: 14px; }
+  .agency-row { padding: 10px 8px; }
+  .news-card { padding: 12px 13px; }
+  .news-title { font-size: 14px; }
+
   #slogan { display: none; }
+
+  /* 精简地图控件，避免与时间轴/抽屉冲突 */
+  .maplibregl-ctrl-bottom-right { display: none; }
+
+  /* 弹窗更贴合窄屏 */
+  .maplibregl-popup { max-width: calc(100vw - 24px) !important; }
 }
 
 /* ———— 无障碍：减少动态 ———— */
 @media (prefers-reduced-motion: reduce) {
   .eye-spiral, .brand-eye, .spinner { animation-duration: 12s; }
   .live-dot { animation: none; }
+  #drawer { transition: none; }
 }
