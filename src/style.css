@@ -388,6 +388,117 @@ body.is-playing .play-btn .icon-pause { display: block; }
 }
 #btn-share:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255, 49, 49, 0.5); }
 
+/* ———— 扫码转发弹窗 ———— */
+.share-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(4, 7, 15, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+.share-modal.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.share-card {
+  position: relative;
+  width: min(360px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  padding: 24px 22px 20px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  transform: translateY(12px) scale(0.98);
+  transition: transform 0.25s;
+}
+.share-modal.open .share-card {
+  transform: translateY(0) scale(1);
+}
+.share-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.share-close:hover { color: var(--ink); background: rgba(255, 255, 255, 0.06); }
+.share-card h2 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+.share-desc {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink-dim);
+  margin-bottom: 16px;
+  text-align: left;
+}
+.share-qr-wrap {
+  display: inline-block;
+  padding: 12px;
+  background: #fff;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+.share-url {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  word-break: break-all;
+  margin-bottom: 14px;
+}
+.share-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.share-btn {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-dim);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.share-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--ink); }
+.share-btn.primary {
+  background: linear-gradient(135deg, #ff3131, #ff5f8f);
+  border-color: transparent;
+  color: #fff;
+}
+.share-btn.primary:hover { filter: brightness(1.08); }
+.share-hint {
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.08em;
+}
+body.share-open { overflow: hidden; }
+
 /* ———— 城市波及标记与倒计时 ———— */
 .city-marker {
   display: flex;

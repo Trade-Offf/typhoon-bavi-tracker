@@ -6,6 +6,7 @@ import { intensityOf, INTENSITY_ORDER, agencyColor } from "./intensity";
 import { renderGuide } from "./guide";
 import { initNews } from "./news";
 import { initSlogans } from "./slogan";
+import { openShareModal } from "./share";
 import { computeImpacts, formatEta, type CityImpact } from "./impact";
 
 const TYPHOON_ID = "202609"; // 2026 年第 9 号台风 巴威 BAVI
@@ -117,11 +118,11 @@ function sharePayload(): { title: string; text: string; url: string } {
   const incoming = pickFocusImpact(latestImpacts);
   const city = incoming?.name;
   const url = city ? `https://chinaupdated.com/?city=${encodeURIComponent(city)}` : "https://chinaupdated.com/";
-  let text = "台风巴威正在逼近华东，看看你的城市还有多久被波及，提前准备物资：";
+  let text = "台风巴威路径追踪：查看你的城市还有多久需要关注，提前做好准备：";
   if (incoming?.status === "inside") {
-    text = `【紧急】台风巴威大风已影响${city}，请留在室内！转发给亲友：`;
+    text = `台风巴威大风可能影响${city}，请留意官方预警，转告亲友：`;
   } else if (incoming?.status === "incoming" && incoming.etaT) {
-    text = `台风巴威预计 ${formatEta(incoming.etaT)} 后波及${city}，抓紧采买储备，转发提醒身边人：`;
+    text = `台风巴威预计约 ${formatEta(incoming.etaT)} 后${city}进入大风影响范围（估算），可关注官方预警并提前准备：`;
   }
   return { title: "台风巴威实时追踪 · 波及倒计时", text, url };
 }
@@ -330,22 +331,9 @@ function wireControls(): void {
     document.body.classList.add("drawer-open");
   });
 
-  // 转发扩散：优先系统分享，降级复制链接（含城市倒计时深链）
-  $("#btn-share").addEventListener("click", async () => {
-    const btn = $("#btn-share");
-    const payload = sharePayload();
-    try {
-      if (navigator.share) {
-        await navigator.share(payload);
-        return;
-      }
-      await navigator.clipboard.writeText(`${payload.text} ${payload.url}`);
-      const old = btn.innerHTML;
-      btn.innerHTML = "已复制链接，快转发吧";
-      setTimeout(() => (btn.innerHTML = old), 2200);
-    } catch {
-      /* 用户取消分享 */
-    }
+  // 转发扩散：二维码弹窗（含城市深链）
+  $("#btn-share").addEventListener("click", () => {
+    openShareModal(sharePayload());
   });
 }
 
