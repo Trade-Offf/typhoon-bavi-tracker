@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "typhoon-bavi-tracker",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-05-03",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "chinaupdated.com", "custom_domain": true },
+    { "pattern": "www.chinaupdated.com", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

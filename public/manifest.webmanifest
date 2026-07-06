@@ -1,0 +1,17 @@
+{
+  "name": "台风巴威实时追踪",
+  "short_name": "巴威追踪",
+  "description": "台风巴威路径追踪、城市波及倒计时与防台应对指南",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1c",
+  "theme_color": "#ff3131",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%230a0f1c' width='192' height='192' rx='32'/%3E%3Ccircle cx='96' cy='96' r='60' fill='none' stroke='%23ff3131' stroke-width='10' stroke-dasharray='28 14'/%3E%3Ccircle cx='96' cy='96' r='18' fill='%23ff3131'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}
