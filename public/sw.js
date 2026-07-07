@@ -9,8 +9,8 @@
  * 结果：断网后页面依然能打开，倒计时、应对指南、紧急电话全部可用，
  * 台风数据停留在最近一次成功获取的状态（前端会标注"数据可能滞后"）。
  */
-const STATIC_CACHE = "bavi-static-v1";
-const DATA_CACHE = "bavi-data-v1";
+const STATIC_CACHE = "bavi-static-v2";
+const DATA_CACHE = "bavi-data-v2";
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
@@ -40,9 +40,11 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  if (url.pathname.startsWith("/api/")) {
+  if (url.pathname.startsWith("/api/") || req.mode === "navigate") {
+    // API 与 HTML 都走网络优先：防灾信息必须最新，断网才退回缓存
     e.respondWith(networkFirst(req));
   } else {
+    // 带哈希的静态资源不可变，缓存优先最快
     e.respondWith(cacheFirstWithRefresh(req));
   }
 });

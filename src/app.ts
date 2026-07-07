@@ -3,7 +3,7 @@ import "./style.css";
 import { TyphoonMap } from "./map";
 import type { TyphoonData } from "./types";
 import { intensityOf, INTENSITY_ORDER, agencyColor } from "./intensity";
-import { renderGuide } from "./guide";
+import { renderGuide, openGuideModal, setGuideContext } from "./guide";
 import { initNews, refreshNews } from "./news";
 import { initSlogans } from "./slogan";
 import { openShareModal } from "./share";
@@ -302,6 +302,8 @@ function refreshImpacts(): void {
   tmap.setImpacts(impacts);
   renderImpactList(impacts);
   updateAlertBanner(impacts);
+  // 指南阶段跟随最紧迫的倒计时（我的位置优先）自动推进
+  setGuideContext(pickFocusImpact(impacts) ?? null);
 }
 
 function renderImpactList(impacts: CityImpact[]): void {
@@ -431,6 +433,9 @@ function wireControls(): void {
   $("#btn-share").addEventListener("click", () => {
     openShareModal(sharePayload());
   });
+
+  // 一键直达"现在该做什么"：慌乱时刻的最短路径
+  document.getElementById("btn-guide")?.addEventListener("click", () => openGuideModal());
 }
 
 /** ———— 数据新鲜度 ———— */
