@@ -9,7 +9,7 @@
  * 同时把上游压力隔离在边缘节点。
  */
 import { normalizeZj, normalizeNmc, type TyphoonData } from "./normalize";
-import { fetchNews, type NewsData } from "./news";
+import { fetchNews, mergeNews, type NewsData } from "./news";
 
 interface Env {
   ASSETS: Fetcher;
@@ -117,9 +117,20 @@ const NEWS_KV_KEY = "news:bavi:v5"; // KV 全局键（cron 持续刷新）
 const NEWS_KV_TTL = 172_800; // KV 保留 48 小时，远超 cron 周期
 const NEWS_STALE_MS = 45 * 60 * 1000; // 超过 45 分钟未更新即视为陈旧
 
-/** 抓取新闻并写入 KV，作为全局“最近一次成功结果”。供 cron 与冷启动共用。 */
+/**
+ * 抓取新闻并与 KV 快照合并后写回。供 cron 与冷启动共用。
+ * 合并而非覆盖：上游偶发退化（只回 1 条）时不丢已积累的资讯，条数只会随时间收敛到全集。
+ */
 async function refreshNews(env: Env): Promise<NewsData> {
-  const data = await fetchNews(NEWS_KEYWORD, 30);
+  const fetched = await fetchNews(NEWS_KEYWORD, 30);
+  let prev: NewsData | null = null;
+  try {
+    const raw = await env.NEWS_KV.get(NEWS_KV_KEY);
+    if (raw) prev = JSON.parse(raw) as NewsData;
+  } catch {
+    /* 快照损坏则视为无历史 */
+  }
+  const data = mergeNews(fetched, prev, 30);
   await env.NEWS_KV.put(NEWS_KV_KEY, JSON.stringify(data), { expirationTtl: NEWS_KV_TTL });
   return data;
 }
@@ -127,7 +138,7 @@ async function refreshNews(env: Env): Promise<NewsData> {
 async function handleNews(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const cache = (caches as unknown as { default: Cache }).default;
   const origin = new URL(request.url).origin;
-  const freshKey = new Request(`${origin}/api/news/fresh-v5`);
+  const freshKey = new Request(`${origin}/api/news/fresh-v6`);
   const fresh = await cache.match(freshKey);
   if (fresh) return fresh;
 

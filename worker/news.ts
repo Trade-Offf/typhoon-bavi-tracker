@@ -97,11 +97,33 @@ async function fetchRss(url: string, tries = 2): Promise<string> {
 }
 
 /** 标题归一化后作为去重键，避免同一新闻多源重复 */
-function dedupeKey(title: string): string {
+export function dedupeKey(title: string): string {
   return title
     .toLowerCase()
     .replace(/[\s“”"'’‘·—\-|:：，,。.！!？?（）()【】\[\]]/g, "")
     .slice(0, 24);
+}
+
+/**
+ * 与上一次快照合并：新抓取的条目优先，历史条目补位，7 天窗口内去重保留。
+ * 这是资讯管线的生命线——上游源退化（如 Bing 只回 1 条、Google 被限流）时，
+ * 一次贫瘠的抓取绝不能覆盖掉已积累的完整快照。信息只增不减，直至自然过期。
+ */
+export function mergeNews(next: NewsData, prev: NewsData | null, limit = 30): NewsData {
+  if (!prev?.items?.length) return next;
+  const cutoff = Date.now() - 7 * 86_400_000;
+  const seen = new Set<string>();
+  const out: NewsItem[] = [];
+  for (const it of [...next.items, ...prev.items]) {
+    const key = dedupeKey(it.title);
+    if (!key || seen.has(key)) continue;
+    const t = Date.parse(it.time);
+    if (isFinite(t) && t < cutoff) continue;
+    seen.add(key);
+    out.push(it);
+  }
+  out.sort((a, b) => Date.parse(b.time) - Date.parse(a.time));
+  return { ...next, items: out.slice(0, limit) };
 }
 
 export async function fetchNews(keyword: string, limit = 30): Promise<NewsData> {
@@ -112,8 +134,9 @@ export async function fetchNews(keyword: string, limit = 30): Promise<NewsData> 
       url: `https://news.google.com/rss/search?q=${q}%20when:7d&hl=zh-CN&gl=CN&ceid=CN:zh-Hans`,
     },
     {
+      // qft=interval="7"（近 7 天过滤）不可省略：裸查询经常只回 0–1 条，带上后稳定回 10+ 条
       name: "Bing 新闻",
-      url: `https://www.bing.com/news/search?q=${q}&format=rss&count=${limit}`,
+      url: `https://www.bing.com/news/search?q=${q}&format=rss&count=${limit}&qft=interval%3d%227%22`,
     },
   ];
 
