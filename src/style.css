@@ -579,6 +579,82 @@ body.share-open { overflow: hidden; }
 .ci-incoming { color: #ffd23f; }
 .ci-watch { color: var(--ink-faint); }
 
+/* ———— 我的位置 ———— */
+.locate-btn {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  margin-bottom: 2px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px dashed rgba(56, 189, 248, 0.4);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+}
+.locate-btn:hover { background: rgba(56, 189, 248, 0.15); }
+.locate-btn:disabled { opacity: 0.6; cursor: wait; }
+.locate-note {
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  text-align: center;
+  margin: 2px 0 6px;
+}
+.impact-row.mine {
+  background: rgba(56, 189, 248, 0.08);
+  outline: 1px solid rgba(56, 189, 248, 0.3);
+}
+.impact-row.mine .impact-name { color: #7dd3fc; }
+.loc-clear {
+  flex: none;
+  width: 18px; height: 18px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 50%;
+  color: var(--ink-faint);
+  font-size: 13px;
+}
+.loc-clear:hover { color: var(--ink); background: rgba(255, 255, 255, 0.1); }
+.city-marker.mine i { background: #38bdf8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.8); }
+.city-marker.mine span { color: #7dd3fc; }
+
+/* ———— 紧急电话一键拨打 ———— */
+.guide-call a.tel {
+  display: inline-block;
+  padding: 5px 10px;
+  margin: 2px 6px 2px 0;
+  font-weight: 700;
+  color: #c084fc;
+  background: rgba(192, 132, 252, 0.1);
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  border-radius: 8px;
+  text-decoration: none;
+}
+.guide-call a.tel:active { background: rgba(192, 132, 252, 0.25); }
+
+/* ———— 离线提示 ———— */
+#offline-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(env(safe-area-inset-top) + 60px);
+  z-index: 60;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffd23f;
+  background: rgba(30, 25, 8, 0.92);
+  border: 1px solid rgba(255, 210, 63, 0.45);
+  border-radius: 999px;
+  max-width: calc(100vw - 24px);
+  text-align: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 .city-tip .city-advice {
   margin-top: 8px;
   font-size: 12px;
@@ -1062,6 +1138,10 @@ body.drawer-open #drawer-open { display: none; }
   /* 触控目标 ≥44px */
   .impact-row { padding: 11px 9px; }
   .impact-name { font-size: 14px; }
+  .locate-btn { padding: 13px 12px; font-size: 14px; }
+  .guide-call a.tel { padding: 9px 14px; font-size: 14px; }
+  /* 避开顶部实况条与预警条 */
+  #offline-bar { top: calc(env(safe-area-inset-top) + 136px); }
   .agency-row { padding: 10px 8px; }
   .news-card { padding: 12px 13px; }
   .news-title { font-size: 14px; }

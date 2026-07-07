@@ -58,12 +58,12 @@ const SECTIONS: GuideSection[] = [
   },
   {
     icon: "☎",
-    title: "紧急电话",
+    title: "紧急电话 · 点击直接拨打",
     tone: "call",
     items: [
-      "119 消防救援 · 120 急救 · 110 报警",
-      "12379 全国预警信息 · 12121 气象服务",
-      "浙江防汛热线 0571-12345 · 台风路径实时发布 typhoon.slt.zj.gov.cn",
+      `<a class="tel" href="tel:119">119 消防救援</a><a class="tel" href="tel:120">120 急救</a><a class="tel" href="tel:110">110 报警</a>`,
+      `<a class="tel" href="tel:12379">12379 全国预警</a><a class="tel" href="tel:12121">12121 气象服务</a>`,
+      `<a class="tel" href="tel:057112345">0571-12345 浙江防汛</a> · 官方路径 typhoon.slt.zj.gov.cn`,
     ],
   },
 ];

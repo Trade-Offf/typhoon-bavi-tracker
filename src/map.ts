@@ -320,7 +320,7 @@ export class TyphoonMap {
       let marker = this.cityMarkers.get(im.name);
       if (!marker) {
         const el = document.createElement("button");
-        el.className = "city-marker";
+        el.className = im.name === "我的位置" ? "city-marker mine" : "city-marker";
         el.innerHTML = `<i></i><span>${im.name}</span>`;
         el.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -331,8 +331,16 @@ export class TyphoonMap {
           .addTo(this.map);
         this.cityMarkers.set(im.name, marker);
       }
+      marker.setLngLat([im.lng, im.lat]);
       marker.getElement().dataset.status = im.status;
     }
+  }
+
+  /** 移除单个城市标记（用于清除"我的位置"） */
+  removeCityMarker(name: string): void {
+    this.cityMarkers.get(name)?.remove();
+    this.cityMarkers.delete(name);
+    this.cityPopup?.remove();
   }
 
   /** 聚焦城市并弹出倒计时卡片（fly=true 时带镜头飞行） */

@@ -80,16 +80,20 @@ function adviceFor(status: ImpactStatus, etaT: number | null, now: number): stri
   return "停止户外活动，转移人员按社区通知就位";
 }
 
+/** "我的位置"专用名，贯穿列表、地图标记与预警条 */
+export const MY_LOCATION = "我的位置";
+
 /**
  * 计算各城市波及倒计时。
  * 风圈半径取最新实测 7 级风圈四象限均值（预报点缺少风圈数据）。
+ * cities 可传入含用户实际定位的扩展列表——坐标只在本机参与计算，不上传。
  */
-export function computeImpacts(data: TyphoonData, now = Date.now()): CityImpact[] {
+export function computeImpacts(data: TyphoonData, now = Date.now(), cities: City[] = CITIES): CityImpact[] {
   const last = data.points[data.points.length - 1];
   const r7 = last?.r7 ? last.r7.reduce((s, v) => s + v, 0) / 4 : 300;
   const samples = buildSamples(data);
 
-  const impacts = CITIES.map((city) => {
+  const impacts = cities.map((city) => {
     let etaT: number | null = null;
     let minDistKm = Infinity;
     let minDistT = now;
@@ -115,8 +119,10 @@ export function computeImpacts(data: TyphoonData, now = Date.now()): CityImpact[
     };
   });
 
-  // 排序：已波及在前，其次按倒计时，最后按最近距离
+  // 排序：我的位置永远置顶（这是用户最关心的一行），其余按已波及 → 倒计时 → 最近距离
   return impacts.sort((a, b) => {
+    if (a.name === MY_LOCATION) return -1;
+    if (b.name === MY_LOCATION) return 1;
     const rank = (x: CityImpact) => (x.status === "inside" ? 0 : x.status === "incoming" ? 1 : 2);
     if (rank(a) !== rank(b)) return rank(a) - rank(b);
     if (a.etaT !== null && b.etaT !== null) return a.etaT - b.etaT;

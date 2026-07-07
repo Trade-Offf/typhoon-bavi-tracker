@@ -8,7 +8,7 @@ import { initNews, refreshNews } from "./news";
 import { initSlogans } from "./slogan";
 import { openShareModal } from "./share";
 import { initMobile, isMobile } from "./mobile";
-import { computeImpacts, formatEta, type CityImpact } from "./impact";
+import { computeImpacts, formatEta, CITIES, MY_LOCATION, type City, type CityImpact } from "./impact";
 
 const TYPHOON_ID = "202609"; // 2026 年第 9 号台风 巴威 BAVI
 const REFRESH_MS = 5 * 60 * 1000;
@@ -112,11 +112,69 @@ class Playback {
 let data: TyphoonData | null = null;
 let latestImpacts: CityImpact[] = [];
 
+/** ———— 我的位置：坐标只存本机 localStorage，倒计时在本机计算，绝不上传 ———— */
+const MY_LOC_KEY = "bavi:my-location";
+
+function loadMyLocation(): City | null {
+  try {
+    const raw = localStorage.getItem(MY_LOC_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as { lng: number; lat: number };
+    if (typeof p.lng !== "number" || typeof p.lat !== "number") return null;
+    return { name: MY_LOCATION, lng: p.lng, lat: p.lat };
+  } catch {
+    return null;
+  }
+}
+
+let myLocation: City | null = loadMyLocation();
+
+function saveMyLocation(loc: City | null): void {
+  myLocation = loc;
+  try {
+    if (loc) localStorage.setItem(MY_LOC_KEY, JSON.stringify({ lng: loc.lng, lat: loc.lat }));
+    else localStorage.removeItem(MY_LOC_KEY);
+  } catch {
+    /* 隐私模式下 localStorage 不可用，定位仅本次会话有效 */
+  }
+}
+
+function requestMyLocation(): void {
+  const btn = document.getElementById("btn-locate") as HTMLButtonElement | null;
+  if (!("geolocation" in navigator)) {
+    if (btn) btn.textContent = "此浏览器不支持定位";
+    return;
+  }
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "定位中…";
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      saveMyLocation({ name: MY_LOCATION, lng: pos.coords.longitude, lat: pos.coords.latitude });
+      refreshImpacts();
+      tmap.focusCity(MY_LOCATION);
+    },
+    (err) => {
+      if (!btn) return;
+      btn.disabled = false;
+      btn.textContent =
+        err.code === err.PERMISSION_DENIED
+          ? "定位被拒绝 · 点击重试（需在浏览器设置允许）"
+          : "定位失败 · 点击重试";
+    },
+    { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
+  );
+}
+
 function cityFromUrl(): string | null {
   return new URLSearchParams(location.search).get("city");
 }
 
 function pickFocusImpact(impacts: CityImpact[]): CityImpact | undefined {
+  // 我的位置优先：对灾区用户，"我这里"永远比任何城市重要
+  const mine = impacts.find((x) => x.name === MY_LOCATION && x.status !== "watch");
+  if (mine) return mine;
   const focus = cityFromUrl();
   if (focus) {
     const matched = impacts.find((x) => x.name === focus && x.status !== "watch");
@@ -126,7 +184,8 @@ function pickFocusImpact(impacts: CityImpact[]): CityImpact | undefined {
 }
 
 function sharePayload(): { title: string; text: string; url: string } {
-  const incoming = pickFocusImpact(latestImpacts);
+  // 分享链接只带公共城市：我的位置是私人坐标，不进入任何 URL
+  const incoming = pickFocusImpact(latestImpacts.filter((x) => x.name !== MY_LOCATION));
   const city = incoming?.name;
   const url = city ? `https://chinaupdated.com/?city=${encodeURIComponent(city)}` : "https://chinaupdated.com/";
   let text = "台风巴威路径追踪：查看你的城市还有多久需要关注，提前做好准备：";
@@ -237,7 +296,8 @@ function updateHud(
 /** ———— 城市波及倒计时 ———— */
 function refreshImpacts(): void {
   if (!data) return;
-  const impacts = computeImpacts(data);
+  const cities = myLocation ? [myLocation, ...CITIES] : CITIES;
+  const impacts = computeImpacts(data, Date.now(), cities);
   latestImpacts = impacts;
   tmap.setImpacts(impacts);
   renderImpactList(impacts);
@@ -246,25 +306,44 @@ function refreshImpacts(): void {
 
 function renderImpactList(impacts: CityImpact[]): void {
   const box = $("#impact-list");
-  box.innerHTML = impacts
+  const rows = impacts
     .map((im) => {
+      const mine = im.name === MY_LOCATION;
       const value =
         im.status === "inside"
           ? `<b class="ci-inside">影响中</b>`
           : im.status === "incoming"
             ? `<b class="ci-incoming">${formatEta(im.etaT!)}</b>`
             : `<b class="ci-watch">${im.minDistKm} km</b>`;
-      return `<button class="impact-row" data-city="${im.name}">
+      return `<button class="impact-row${mine ? " mine" : ""}" data-city="${im.name}">
         <i class="ci-dot ci-${im.status}"></i>
         <span class="impact-name">${im.name}</span>
         <span class="impact-value">${value}</span>
+        ${mine ? `<span class="loc-clear" title="清除我的位置" role="button" aria-label="清除我的位置">×</span>` : ""}
       </button>`;
     })
     .join("");
+  // 未定位时显示入口按钮；坐标只在本机计算，这句承诺必须让用户看见
+  const locate = myLocation
+    ? ""
+    : `<button id="btn-locate" class="locate-btn">定位我的位置 · 算我这里的倒计时</button>
+       <p class="locate-note">定位只在你的手机上计算，不会上传</p>`;
+  box.innerHTML = locate + rows;
+
+  document.getElementById("btn-locate")?.addEventListener("click", requestMyLocation);
+  box.querySelectorAll<HTMLElement>(".loc-clear").forEach((x) => {
+    x.addEventListener("click", (e) => {
+      e.stopPropagation();
+      saveMyLocation(null);
+      tmap.removeCityMarker(MY_LOCATION);
+      refreshImpacts();
+    });
+  });
   box.querySelectorAll<HTMLButtonElement>(".impact-row").forEach((row) => {
     row.addEventListener("click", () => {
       const name = row.dataset.city!;
-      history.replaceState(null, "", `?city=${encodeURIComponent(name)}`);
+      // 我的位置不写入 URL：私人坐标不该出现在可复制的链接里
+      if (name !== MY_LOCATION) history.replaceState(null, "", `?city=${encodeURIComponent(name)}`);
       document.querySelectorAll(".impact-row").forEach((r) => r.classList.remove("active"));
       row.classList.add("active");
       tmap.focusCity(name);
@@ -416,6 +495,39 @@ async function initialLoad(): Promise<void> {
   }
   scheduleRefresh(REFRESH_MS);
 }
+
+/** ———— 离线可用 ———— */
+// 台风天网络最不可靠，SW 缓存最近一次数据：断网也能看倒计时、指南和紧急电话
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
+function setOfflineBar(offline: boolean): void {
+  let bar = document.getElementById("offline-bar");
+  if (!offline) {
+    bar?.remove();
+    return;
+  }
+  if (bar) return;
+  bar = document.createElement("div");
+  bar.id = "offline-bar";
+  bar.setAttribute("role", "status");
+  bar.textContent = "当前离线 · 显示的是最近缓存数据，恢复联网后自动更新";
+  document.body.appendChild(bar);
+}
+
+window.addEventListener("offline", () => {
+  setOfflineBar(true);
+  updateFreshness();
+});
+window.addEventListener("online", () => {
+  setOfflineBar(false);
+  runRefresh();
+  refreshNews();
+});
+if (!navigator.onLine) setOfflineBar(true);
 
 // 时效提示每 30 秒刷新一次
 setInterval(updateFreshness, 30_000);
