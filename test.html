@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>台风巴威封面 v2</title>
+    <style>
+      body {
+        background: #111;
+        margin: 0;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-family: -apple-system, "PingFang SC", sans-serif;
+      }
+      canvas {
+        width: 380px;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+      }
+      button {
+        margin-top: 16px;
+        padding: 12px 32px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #fff;
+        background: #e02020;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c" width="1242" height="1656"></canvas>
+    <button onclick="dl()">下载封面 PNG</button>
+    <script>
+      const c = document.getElementById("c"),
+        x = c.getContext("2d");
+      const W = 1242,
+        H = 1656,
+        M = 90; // 统一边距 90
+      const F = '"PingFang SC","Microsoft YaHei",sans-serif';
+      const RED = "#e02020",
+        INK = "#0d1526";
+
+      // ── 背景 ──
+      x.fillStyle = INK;
+      x.fillRect(0, 0, W, H);
+
+      // 装饰：右上角同心圆（只占角落，不压文字）
+      x.save();
+      x.globalAlpha = 0.5;
+      for (let i = 1; i <= 6; i++) {
+        x.beginPath();
+        x.arc(W + 40, 340, i * 70, 0, Math.PI * 2);
+        x.strokeStyle = `rgba(110,150,210,${0.2 - i * 0.03})`;
+        x.lineWidth = 1.5;
+        x.stroke();
+      }
+      x.restore();
+
+      // ── ① 顶部警报带 ──
+      x.fillStyle = RED;
+      x.fillRect(0, 0, W, 120);
+      x.fillStyle = "#fff";
+      x.font = `900 44px ${F}`;
+      x.textBaseline = "middle";
+      x.fillText("台风红色预警", M, 62);
+      x.font = `600 30px ${F}`;
+      x.textAlign = "right";
+      x.fillText("2026 年第 9 号 · 巴威 BAVI", W - M, 62);
+      x.textAlign = "left";
+
+      // ── ② 主标题 ──
+      x.fillStyle = "#fff";
+      x.font = `900 96px ${F}`;
+      x.fillText("国家风力等级表", M, 300);
+      x.fillText("装不下这场台风", M, 430);
+      x.fillStyle = RED;
+      x.fillRect(M, 500, 120, 10); // 短红线收束
+
+      x.fillStyle = "rgba(255,255,255,.55)";
+      x.font = `400 32px ${F}`;
+      x.fillText("实测风速已超出我国风力标准上限 61.2 米/秒", M, 580);
+
+      // ── ③ 三张统计卡（等宽栅格）──
+      const cardY = 660,
+        cardH = 260,
+        gap = 24;
+      const cardW = (W - M * 2 - gap * 2) / 3;
+      // 我国风力等级表最高 17 级，再强只能称「17 级以上」；写「18 级」是国标里不存在的错误命名
+      const stats = [
+        ["62", "米/秒", "中心最大风速"],
+        ["915", "百帕", "中心最低气压"],
+        ["17", "级以上", "底层风力 · 超强台风"],
+      ];
+      stats.forEach((s, i) => {
+        const cx0 = M + i * (cardW + gap);
+        x.fillStyle = "rgba(255,255,255,.06)";
+        roundRect(cx0, cardY, cardW, cardH, 14);
+        x.strokeStyle = "rgba(255,255,255,.10)";
+        x.lineWidth = 1;
+        x.stroke();
+        x.textAlign = "center";
+        x.fillStyle = i === 0 ? RED : "#fff";
+        x.font = `900 110px ${F}`;
+        x.fillText(s[0], cx0 + cardW / 2, cardY + 105);
+        x.fillStyle = "rgba(255,255,255,.85)";
+        x.font = `600 34px ${F}`;
+        x.fillText(s[1], cx0 + cardW / 2, cardY + 175);
+        x.fillStyle = "rgba(255,255,255,.45)";
+        x.font = `400 28px ${F}`;
+        x.fillText(s[2], cx0 + cardW / 2, cardY + 222);
+      });
+      x.textAlign = "left";
+
+      // ── ④ 关键信息行（标准通报式）──
+      const rows = [
+        ["登陆窗口", "7月10日 — 7月12日"],
+        ["影响区域", "福建北部 — 浙江沿海"],
+        ["七级风圈", "半径超 300 公里"],
+      ];
+      let ry = 1030;
+      rows.forEach((r) => {
+        x.fillStyle = "rgba(255,255,255,.40)";
+        x.font = `400 34px ${F}`;
+        x.fillText(r[0], M, ry);
+        x.fillStyle = r[0] === "登陆窗口" ? "#ffd60a" : "#fff";
+        x.font = `700 40px ${F}`;
+        x.fillText(r[1], M + 240, ry);
+        x.strokeStyle = "rgba(255,255,255,.08)";
+        x.lineWidth = 1;
+        x.beginPath();
+        x.moveTo(M, ry + 42);
+        x.lineTo(W - M, ry + 42);
+        x.stroke();
+        ry += 96;
+      });
+
+      // ── ⑤ 转发语 ──
+      x.fillStyle = "#fff";
+      x.font = `900 52px ${F}`;
+      x.fillStyle = "rgba(255,255,255,.40)";
+      x.font = `400 27px ${F}`;
+      x.fillText("非商业 · 无广告 · 一切以中央气象台官方预警为准", M, 1462);
+
+      // ── ⑥ 底部 CTA 警报带（与顶部呼应）──
+      x.fillStyle = RED;
+      x.fillRect(0, H - 130, W, 130);
+      x.fillStyle = "#fff";
+      x.font = `700 38px ${F}`;
+      x.fillText("查你的城市还有多久被波及 →", M, H - 64);
+      x.font = `900 44px ${F}`;
+      x.textAlign = "right";
+      x.fillText("chinaupdated.com", W - M, H - 64);
+      x.textAlign = "left";
+
+      function roundRect(a, b, w, h, r) {
+        x.beginPath();
+        x.moveTo(a + r, b);
+        x.arcTo(a + w, b, a + w, b + h, r);
+        x.arcTo(a + w, b + h, a, b + h, r);
+        x.arcTo(a, b + h, a, b, r);
+        x.arcTo(a, b, a + w, b, r);
+        x.closePath();
+        x.fill();
+      }
+      function dl() {
+        const a = document.createElement("a");
+        a.download = "typhoon-bavi-cover-v2.png";
+        a.href = c.toDataURL("image/png");
+        a.click();
+      }
+    </script>
+  </body>
+</html>
