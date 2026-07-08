@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>台风巴威 · 小红书海报</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 24px 16px 32px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        background: #050810;
+        color: #8fa3c7;
+        font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      .hint {
+        max-width: 460px;
+        font-size: 13px;
+        line-height: 1.7;
+        text-align: center;
+      }
+      canvas {
+        width: min(380px, 92vw);
+        height: auto;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+      }
+      .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+      button {
+        padding: 12px 28px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #0a0f1c;
+        background: #e8eefb;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button.secondary {
+        color: #e8eefb;
+        background: transparent;
+        border: 1px solid rgba(232, 238, 251, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <p class="hint">
+      Editorial 海报 · 1242×1656 · 数据口径「浙江水利厅」· 海报不含网址<br />
+      缩略图可读：大标题 + 一个数字 + 一句口号
+    </p>
+    <canvas id="c" width="1242" height="1656"></canvas>
+    <div class="actions">
+      <button type="button" onclick="downloadPng()">下载海报 PNG</button>
+      <button type="button" class="secondary" onclick="draw()">重新渲染</button>
+    </div>
+
+    <script>
+      /**
+       * 设计 token（与网站一致，单一 accent，无彩虹渐变）
+       * bg #0a0f1c · ink #e8eefb · dim #8fa3c7 · accent #ff3131 · amber #ffd23f
+       * signature：右上角风眼（网站 brand-eye 的 poster 版）
+       */
+      const DATA = {
+        typhoonNo: "2026 年第 9 号",
+        intensity: "超强台风",
+        observeTime: "07-07 11:00",
+        speed: "55",
+        pressure: "930",
+        power: "16",
+      };
+
+      const c = document.getElementById("c");
+      const ctx = c.getContext("2d");
+      const W = 1242;
+      const H = 1656;
+      const M = 96;
+      const CW = W - M * 2;
+      const SANS = '"PingFang SC","Microsoft YaHei",sans-serif';
+      const MONO = '"SF Mono","JetBrains Mono",monospace';
+      const INK = "#e8eefb";
+      const DIM = "#8fa3c7";
+      const FAINT = "#55647f";
+      const ACCENT = "#ff3131";
+      const AMBER = "#ffd23f";
+      const BG = "#0a0f1c";
+
+      function line(x1, y1, x2, y2, color = "rgba(126,155,205,0.18)", w = 1) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+
+      function txt(str, cx, cy, font, color, align = "left") {
+        ctx.fillStyle = color;
+        ctx.font = font;
+        ctx.textAlign = align;
+        ctx.textBaseline = "middle";
+        ctx.fillText(str, cx, cy);
+      }
+
+      /** 唯一 signature：风眼（与网站 brand-eye 同构） */
+      function drawEye(cx, cy, scale = 1) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(scale, scale);
+        // 风圈
+        for (let i = 4; i >= 1; i--) {
+          ctx.beginPath();
+          ctx.arc(0, 0, 28 + i * 38, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255,49,49,${0.06 + i * 0.04})`;
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+        // 虚线外环
+        ctx.setLineDash([10, 14]);
+        ctx.beginPath();
+        ctx.arc(0, 0, 52, 0, Math.PI * 2);
+        ctx.strokeStyle = ACCENT;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // 实心眼
+        ctx.beginPath();
+        ctx.arc(0, 0, 14, 0, Math.PI * 2);
+        ctx.fillStyle = ACCENT;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function draw() {
+        // 背景：深海 + 风眼处微弱径向光（仅此一处光效）
+        ctx.fillStyle = BG;
+        ctx.fillRect(0, 0, W, H);
+        const glow = ctx.createRadialGradient(W - 200, 380, 20, W - 200, 380, 520);
+        glow.addColorStop(0, "rgba(255,49,49,0.08)");
+        glow.addColorStop(1, "transparent");
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+
+        drawEye(W - 200, 380, 1.15);
+
+        // ── 顶栏：hairline editorial ──
+        line(M, 108, W - M, 108);
+        txt(DATA.typhoonNo, M, 72, `500 24px ${MONO}`, FAINT);
+        txt("数据 · 浙江水利厅", W - M, 72, `500 24px ${SANS}`, FAINT, "right");
+        txt("公益追踪 · 科普信息", M, 144, `400 22px ${SANS}`, "rgba(143,163,199,0.5)");
+
+        // ── 主标题：白字堆叠，不用渐变 ──
+        txt("台风", M, 260, `900 108px ${SANS}`, INK);
+        txt("巴威", M, 390, `900 132px ${SANS}`, INK);
+
+        // 强度标签（紧贴标题下）
+        ctx.font = `700 24px ${SANS}`;
+        const badge = DATA.intensity;
+        const bw = ctx.measureText(badge).width + 32;
+        ctx.fillStyle = "rgba(255,49,49,0.12)";
+        ctx.strokeStyle = "rgba(255,49,49,0.45)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(M, 448, bw, 44, 22);
+        ctx.fill();
+        ctx.stroke();
+        txt(badge, M + bw / 2, 470, `700 24px ${SANS}`, ACCENT, "center");
+
+        // ── Hero 数字：一个超大 + 两个辅（缩略图也能读） ──
+        line(M, 540, W - M, 540);
+        txt(DATA.speed, M, 640, `900 160px ${MONO}`, AMBER);
+        txt("m/s", M + ctx.measureText(DATA.speed).width + 16, 660, `600 36px ${MONO}`, "rgba(255,210,63,0.55)", "left");
+
+        const auxY = 620;
+        const auxX = M + 420;
+        txt(DATA.pressure, auxX, auxY, `700 72px ${MONO}`, INK);
+        txt("hPa 气压", auxX, auxY + 52, `400 26px ${SANS}`, FAINT);
+        txt(DATA.power, auxX + 280, auxY, `700 72px ${MONO}`, INK);
+        txt("级 风力", auxX + 280, auxY + 52, `400 26px ${SANS}`, FAINT);
+
+        txt(`观测截至 ${DATA.observeTime}`, M, 740, `400 24px ${MONO}`, FAINT);
+        line(M, 780, W - M, 780);
+
+        // ── 功能一行（不用三格卡片） ──
+        txt(
+          "路径追踪  ·  城市倒计时  ·  应对指南",
+          M,
+          830,
+          `500 32px ${SANS}`,
+          "rgba(232,238,251,0.72)",
+        );
+
+        // ── 口号：poster 主情绪（左对齐大字，单一处理） ──
+        txt("理性关注", M, 960, `900 72px ${SANS}`, INK);
+        txt("提前准备", M, 1060, `900 72px ${SANS}`, AMBER);
+        txt("彼此转告", M, 1160, `900 72px ${SANS}`, "rgba(232,238,251,0.35)");
+
+        line(M, 1240, W - M, 1240);
+
+        // ── 底注 + CTA（无网址） ──
+        txt(
+          "个人公益工具 · 非政府发布 · 以官方预警为准",
+          M,
+          1300,
+          `400 22px ${SANS}`,
+          "rgba(143,163,199,0.45)",
+        );
+        txt("查你的城市还有多久需要关注 →", M, 1380, `700 38px ${SANS}`, INK);
+
+        // 底部细线收束
+        line(M, H - 96, W - M, H - 96, "rgba(126,155,205,0.12)");
+        txt("不信谣 · 不传谣", M + CW / 2, H - 56, `400 20px ${SANS}`, FAINT, "center");
+      }
+
+      function downloadPng() {
+        const a = document.createElement("a");
+        a.download = "typhoon-bavi-poster-xhs.png";
+        a.href = c.toDataURL("image/png");
+        a.click();
+      }
+
+      draw();
+    </script>
+  </body>
+</html>
