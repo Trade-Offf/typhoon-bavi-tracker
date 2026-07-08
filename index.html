@@ -44,6 +44,9 @@
 
   <!-- 左侧 HUD 信息面板 -->
   <aside id="hud" aria-label="台风实时状态">
+    <button id="hud-close" aria-label="收起面板，查看完整地图" title="收起面板，查看完整地图">
+      <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M15.4 5.6 9 12l6.4 6.4L14 19.8 6.2 12 14 4.2z"/></svg>
+    </button>
     <div id="hud-stats">
       <div class="hud-badge-row">
         <span class="intensity-badge" id="hud-badge">—</span>
@@ -81,6 +84,10 @@
       <span>信息仅供参考，请以官方预警为准</span>
     </div>
   </aside>
+  <button id="hud-open" aria-label="展开实况面板">
+    <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M8.6 5.6 15 12l-6.4 6.4L10 19.8l7.8-7.8L10 4.2z"/></svg>
+    <span>实况</span>
+  </button>
 
   <!-- 正能量文案轮播 -->
   <div id="slogan" aria-live="polite">

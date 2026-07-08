@@ -3,7 +3,7 @@ import type { FeatureCollection, Feature } from "geojson";
 import type { TyphoonData, TrackPoint } from "./types";
 import { intensityOf, radiusForSpeed, agencyColor } from "./intensity";
 import { windCircleRing, stateAtTime, type TrackState } from "./geo";
-import { formatEta, type CityImpact } from "./impact";
+import { formatEta, warningMarks, type CityImpact } from "./impact";
 
 type FC = FeatureCollection;
 
@@ -58,6 +58,7 @@ export class TyphoonMap {
   private impacts: CityImpact[] = [];
   private cityPopup: maplibregl.Popup | null = null;
   private userInteracted = false;
+  private layersReady = false;
 
   constructor(container: string) {
     this.map = new maplibregl.Map({
@@ -96,18 +97,41 @@ export class TyphoonMap {
     }
     // 个别瓦片请求失败会推迟 load 事件，用 idle 兜底保证初始化必然执行
     let fired = false;
+    let waitingStyle = false;
     const fire = () => {
       if (fired) return;
+      if (!this.map.isStyleLoaded()) {
+        // style 本身还没加载完（后台标签页被节流、低端机首帧延迟等），
+        // 此时调用 addSource 会抛 "Style is not done loading"。
+        // 等 styledata 后重试，而不是硬跑 setupLayers。
+        if (!waitingStyle) {
+          waitingStyle = true;
+          this.map.once("styledata", () => {
+            waitingStyle = false;
+            fire();
+          });
+        }
+        return;
+      }
       fired = true;
       cb();
     };
     this.map.on("load", fire);
     this.map.once("idle", fire);
-    setTimeout(fire, 8000); // 最终兜底：底图异常也不阻塞数据渲染
+    setTimeout(fire, 8000); // 最终兜底：底图瓦片异常也不阻塞数据渲染（仍会等 style 就绪）
+    // 硬顶格：style 校验失败等极端情况下可能永远等不到 styledata，
+    // 20 秒后强制放行——地图图层可能渲染不出来，但台风数据和 HUD 不能陪着一起卡死。
+    setTimeout(() => {
+      if (fired) return;
+      fired = true;
+      cb();
+    }, 20_000);
   }
 
   /** 初始化所有数据源与图层（仅调用一次） */
   setupLayers(): void {
+    if (this.layersReady) return;
+    this.layersReady = true;
     const map = this.map;
     const srcs = [
       "wind-r7", "wind-r10", "wind-r12",
@@ -357,6 +381,13 @@ export class TyphoonMap {
       .setLngLat([im.lng, im.lat])
       .setHTML(cityPopupHtml(im))
       .addTo(this.map);
+    this.cityPopup.getElement()
+      .querySelector(".warn-close")
+      ?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setWarnBarHidden(true);
+        this.cityPopup?.setHTML(cityPopupHtml(im));
+      });
   }
 
   /** 回放期间淡出预报，聚焦历史演进 */
@@ -480,7 +511,8 @@ export class TyphoonMap {
       };
     } else {
       const drawerOpen = document.body.classList.contains("drawer-open") && window.innerWidth >= 1100;
-      padding = { top: 110, bottom: 140, left: 360, right: drawerOpen ? 420 : 70 };
+      const hudCollapsed = document.body.classList.contains("hud-collapsed");
+      padding = { top: 110, bottom: 140, left: hudCollapsed ? 70 : 360, right: drawerOpen ? 420 : 70 };
     }
 
     // 画布装不下 padding 时按比例压缩，保证取景计算永不失败
@@ -555,6 +587,53 @@ function pointHtml(p: TrackPoint): string {
   </div>`;
 }
 
+const WARN_HIDE_KEY = "bavi:hide-warnbar";
+
+function warnBarHidden(): boolean {
+  try {
+    return localStorage.getItem(WARN_HIDE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function setWarnBarHidden(v: boolean): void {
+  try {
+    if (v) localStorage.setItem(WARN_HIDE_KEY, "1");
+    else localStorage.removeItem(WARN_HIDE_KEY);
+  } catch {
+    /* 隐私模式下 localStorage 不可用，本次会话内仍会重新显示 */
+  }
+}
+
+/** 48/24 小时警戒进度条：仅在"即将波及"且用户未关闭时渲染 */
+function warnBarHtml(im: CityImpact): string {
+  if (im.status !== "incoming" || im.etaT == null || warnBarHidden()) return "";
+  const now = Date.now();
+  const { t48, t24 } = warningMarks(im.etaT);
+  const start = im.etaT - 72 * 3600e3; // 展示一个 72 小时窗口，终点是预计波及时刻
+  const pct = (t: number) => Math.min(100, Math.max(0, ((t - start) / (im.etaT! - start)) * 100));
+  const p48 = pct(t48);
+  const p24 = pct(t24);
+  const pNow = pct(now);
+  const stage = now < t48 ? "safe" : now < t24 ? "w48" : "w24";
+  const mark = (t: number, label: string, active: boolean) =>
+    `<span class="warn-mark${active ? " active" : ""}">${now < t ? `${label}还有 ${formatEta(t, now)}` : `已进入${label}`}</span>`;
+  return `<div class="warn-bar" data-stage="${stage}">
+    <div class="warn-track">
+      <i class="warn-seg warn-seg-safe" style="width:${p48}%"></i>
+      <i class="warn-seg warn-seg-48" style="width:${p24 - p48}%"></i>
+      <i class="warn-seg warn-seg-24" style="width:${100 - p24}%"></i>
+      <i class="warn-now" style="left:${pNow}%"></i>
+    </div>
+    <div class="warn-labels">
+      ${mark(t48, "48小时警戒", stage !== "safe")}
+      ${mark(t24, "24小时警戒", stage === "w24")}
+    </div>
+    <button class="warn-close" type="button" aria-label="不再显示警戒线" title="不再显示">×</button>
+  </div>`;
+}
+
 function cityPopupHtml(im: CityImpact): string {
   const statusLabel =
     im.status === "inside"
@@ -570,6 +649,7 @@ function cityPopupHtml(im: CityImpact): string {
     <div class="tip-head"><i class="ci-dot ci-${im.status}"></i>${im.name} · ${statusLabel}</div>
     ${eta}
     <div class="tip-row"><span>预报期内最近距离</span><b>${im.minDistKm} km</b></div>
+    ${warnBarHtml(im)}
     <p class="city-advice">${im.advice}</p>
     <p class="city-note">基于中央气象台预报路径与当前7级风圈估算，请以官方预警为准</p>
   </div>`;

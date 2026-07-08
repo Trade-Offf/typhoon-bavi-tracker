@@ -107,7 +107,44 @@ body {
   z-index: 20;
   scrollbar-width: thin;
   scrollbar-color: var(--ink-faint) transparent;
+  transition: transform 0.35s cubic-bezier(0.3, 0.9, 0.3, 1);
 }
+#hud.collapsed { transform: translateX(calc(-100% - 26px)); }
+
+#hud-close {
+  position: absolute;
+  top: 10px; right: 10px;
+  background: transparent;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  z-index: 1;
+}
+#hud-close:hover { color: var(--ink); background: rgba(255, 255, 255, 0.06); }
+
+#hud-open {
+  position: fixed;
+  top: 88px;
+  left: 0;
+  z-index: 20;
+  display: none;
+  align-items: center;
+  gap: 3px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  color: var(--ink-dim);
+  font-size: 12px;
+  padding: 9px 7px 9px 10px;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  letter-spacing: 0.1em;
+}
+#hud-open:hover { color: var(--ink); }
+body.hud-collapsed #hud-open { display: flex; }
 
 .hud-badge-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 
@@ -671,6 +708,63 @@ body.share-open { overflow: hidden; }
   line-height: 1.5;
 }
 
+/* ———— 48/24 小时警戒线（城市弹窗内） ———— */
+.warn-bar {
+  position: relative;
+  margin-top: 9px;
+  padding: 9px 22px 8px 9px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+.warn-track {
+  position: relative;
+  display: flex;
+  height: 5px;
+  border-radius: 999px;
+  overflow: visible;
+}
+.warn-seg { display: block; height: 100%; }
+.warn-seg-safe { background: #3d4a63; border-radius: 999px 0 0 999px; }
+.warn-seg-48 { background: #ffd23f; opacity: 0.55; }
+.warn-seg-24 { background: #ff3131; opacity: 0.6; border-radius: 0 999px 999px 0; }
+.warn-now {
+  position: absolute;
+  top: 50%; width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--bg);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+.warn-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 7px;
+}
+.warn-mark {
+  font-size: 10px;
+  color: var(--ink-faint);
+  line-height: 1.4;
+}
+.warn-mark.active { color: #ffd23f; font-weight: 600; }
+.warn-bar[data-stage="w24"] .warn-mark.active { color: #ff5c5c; }
+.warn-close {
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 18px; height: 18px;
+  line-height: 16px;
+  text-align: center;
+  background: transparent;
+  border: none;
+  color: var(--ink-faint);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.warn-close:hover { color: var(--ink); background: rgba(255, 255, 255, 0.08); }
+
 /* ———— 顶部波及预警条 ———— */
 #alert-banner {
   position: fixed;
@@ -833,10 +927,18 @@ body.share-open { overflow: hidden; }
 #drawer-open:hover { color: var(--ink); }
 body.drawer-open #drawer-open { display: none; }
 
-/* 抽屉展开时给时间轴与文案让位（大屏） */
+/* 抽屉/HUD 展开或折叠时给时间轴与文案让位（大屏），两者独立叠加。
+   偏移量是按面板宽度估算的经验值，不是精确计算——改了 #hud/#drawer 宽度记得回来同步：
+   -175px ≈ 抽屉宽度(350px)的一半，抽屉展开时把中心点左移让位给右侧抽屉；
+   +150px ≈ HUD 占用宽度(300px+左右边距)的一半，HUD 折叠时把中心点右移填补左侧空出的空间；
+   -25px 是两者的代数和（-175 + 150），两个状态同时成立时不能简单叠加两条规则，需单独覆盖。 */
 @media (min-width: 1100px) {
-  body.drawer-open #timeline { left: calc(50% - 175px); }
+  body.drawer-open #timeline,
   body.drawer-open #slogan { left: calc(50% - 175px); }
+  body.hud-collapsed #timeline,
+  body.hud-collapsed #slogan { left: calc(50% + 150px); }
+  body.drawer-open.hud-collapsed #timeline,
+  body.drawer-open.hud-collapsed #slogan { left: calc(50% - 25px); }
 }
 
 /* ———— 资讯面板 ———— */
@@ -1216,6 +1318,8 @@ body.drawer-open #drawer-open { display: none; }
 
   /* 桌面 HUD 容器隐藏（内容已迁移到 #mstats 与抽屉） */
   #hud { display: none; }
+  #hud-close { display: none; }
+  #hud-open { display: none !important; }
 
   /* 常驻实况条：始终可见的关键数据 */
   #mstats {

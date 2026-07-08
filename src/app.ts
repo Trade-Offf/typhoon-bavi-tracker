@@ -423,10 +423,27 @@ function wireControls(): void {
   $("#drawer-close").addEventListener("click", () => {
     drawer.classList.remove("open");
     document.body.classList.remove("drawer-open");
+    if (window.innerWidth >= 1100) tmap.fitToData();
   });
   $("#drawer-open").addEventListener("click", () => {
     drawer.classList.add("open");
     document.body.classList.add("drawer-open");
+    if (window.innerWidth >= 1100) tmap.fitToData();
+  });
+
+  // 左侧 HUD 折叠：把地图让给主视野，收起/展开都重新取景，让镜头真正用上空出来的空间。
+  // HUD 在平板宽度(761–1099)也是侧栏布局（只有右侧抽屉在该宽度下变成底部弹层），
+  // 所以这里按「非移动端」而非桌面专属的 1100 断点来判断，否则平板下折叠了却不会重新取景。
+  const hud = $("#hud");
+  $("#hud-close").addEventListener("click", () => {
+    hud.classList.add("collapsed");
+    document.body.classList.add("hud-collapsed");
+    if (!isMobile()) tmap.fitToData();
+  });
+  $("#hud-open").addEventListener("click", () => {
+    hud.classList.remove("collapsed");
+    document.body.classList.remove("hud-collapsed");
+    if (!isMobile()) tmap.fitToData();
   });
 
   // 转发扩散：二维码弹窗（含城市深链）
@@ -559,6 +576,11 @@ if (window.innerWidth >= 761 && window.innerWidth < 1100) {
   document.body.classList.remove("drawer-open");
 }
 tmap.onReady(() => {
-  tmap.setupLayers();
+  try {
+    tmap.setupLayers();
+  } catch (e) {
+    // 图层初始化失败不该拖垮数据链路：地图可能显示不全，但倒计时、指南等核心信息必须还能用
+    console.error("地图图层初始化失败，将仅展示数据面板", e);
+  }
   initialLoad();
 });

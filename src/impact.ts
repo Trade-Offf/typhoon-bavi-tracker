@@ -130,6 +130,16 @@ export function computeImpacts(data: TyphoonData, now = Date.now(), cities: City
   });
 }
 
+/** 48/24 小时警戒线的两个时刻点（均为 7 级风圈到达时刻往前推算） */
+export interface WarningMarks {
+  t48: number;
+  t24: number;
+}
+
+export function warningMarks(etaT: number): WarningMarks {
+  return { t48: etaT - 48 * 3600e3, t24: etaT - 24 * 3600e3 };
+}
+
 /** 倒计时人类可读格式："约 32 小时" / "8 小时 20 分" */
 export function formatEta(etaT: number, now = Date.now()): string {
   const ms = etaT - now;
