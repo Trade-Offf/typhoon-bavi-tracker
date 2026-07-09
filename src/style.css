@@ -497,6 +497,61 @@ body.is-playing .play-btn .icon-pause { display: block; }
 
 /* ———— 顶栏右侧：分享 ———— */
 .topbar-right { display: flex; align-items: center; gap: 10px; pointer-events: auto; }
+
+/* ———— 背景音乐：小圆钮 + 播放期署名 pill ———— */
+#btn-music {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--ink-dim);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+#btn-music::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; }
+#btn-music:hover { color: var(--ink); }
+#btn-music.loading { opacity: 0.55; cursor: wait; }
+#btn-music.playing {
+  color: var(--warn);
+  border-color: rgba(255, 210, 63, 0.5);
+}
+#btn-music .icon-pause { display: none; }
+#btn-music.playing .icon-play { display: none; }
+#btn-music.playing .icon-pause { display: block; animation: musicSway 1.8s ease-in-out infinite; }
+@keyframes musicSway {
+  0%, 100% { transform: rotate(-9deg); }
+  50% { transform: rotate(9deg); }
+}
+
+#music-credit {
+  position: fixed;
+  top: 62px;
+  right: 22px;
+  z-index: var(--z-ui);
+  padding: 6px 13px;
+  border-radius: var(--radius-pill);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: var(--ink-dim);
+  font-size: var(--fs-11);
+  text-decoration: none;
+  letter-spacing: 0.03em;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+}
+#music-credit.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+#music-credit:hover { color: var(--warn); }
 #btn-share {
   display: flex;
   align-items: center;
@@ -1310,9 +1365,11 @@ body.drawer-open #drawer-open { display: none; }
   padding-top: 12px;
   border-top: 1px solid var(--panel-border);
   font-size: var(--fs-12);
-  line-height: 1.7;
+  line-height: 1.9;
   color: var(--ink-faint);
 }
+.om-link { color: var(--link); text-decoration: none; }
+.om-link:hover { text-decoration: underline; }
 @keyframes fadein { from { opacity: 0; } }
 .gm-card {
   display: flex;
@@ -1396,7 +1453,25 @@ body.drawer-open #drawer-open { display: none; }
   .brand-text .en { font-size: var(--fs-11); }
   .brand-text .sub { display: none; }
   .topbar-right { flex: 1; min-width: 0; gap: 8px; justify-content: flex-end; }
+  #btn-music { width: 32px; height: 32px; }
+  #btn-music::after { inset: -8px; }
   #btn-share { padding: 7px 13px; font-size: var(--fs-12); }
+
+  /* 署名 pill：顶部被实况条/预警条占满，移到时间轴上方居中 */
+  #music-credit {
+    top: auto;
+    right: auto;
+    left: 50%;
+    bottom: calc(178px + env(safe-area-inset-bottom));
+    transform: translate(-50%, 6px);
+    max-width: calc(100vw - 32px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #music-credit.show { transform: translate(-50%, 0); }
+  /* 抽屉 half/full 时与时间轴一起让位，避免和列表内容叠在一起 */
+  body.sheet-open #music-credit.show { opacity: 0; pointer-events: none; }
   .datastamp {
     display: block;
     font-size: var(--fs-11);
@@ -1609,6 +1684,7 @@ body.drawer-open #drawer-open { display: none; }
   .slogan-mark,
   .city-marker[data-status="inside"] i,
   .ci-dot.ci-inside,
+  #btn-music.playing svg,
   #alert-banner { animation: none; }
   #drawer, #hud, .share-modal, .share-card { transition: none; }
   #guide-modal, #origin-modal { animation: none; }

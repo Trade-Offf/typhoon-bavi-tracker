@@ -9,6 +9,7 @@ import { initSlogans } from "./slogan";
 import { openShareModal, type SharePayload } from "./share";
 import type { PosterData } from "./poster";
 import { openOriginModal } from "./origin";
+import { initMusic } from "./music";
 import { initMobile, isMobile } from "./mobile";
 import { computeImpacts, formatEta, CITIES, MY_LOCATION, type City, type CityImpact } from "./impact";
 
@@ -480,6 +481,7 @@ function wireControls(): void {
 
   // 角落入口：聊聊初心
   document.getElementById("btn-origin")?.addEventListener("click", () => openOriginModal());
+  initMusic();
 }
 
 /** ———— 数据新鲜度 ———— */

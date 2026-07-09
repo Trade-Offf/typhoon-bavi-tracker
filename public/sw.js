@@ -39,6 +39,9 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  // 音频走浏览器原生加载：Range 请求的 206 响应不能 cache.put（会抛错断掉播放），
+  // 且 5.7MB 的背景乐没必要占离线缓存配额
+  if (url.pathname.startsWith("/music/") || req.headers.has("range")) return;
 
   if (url.pathname.startsWith("/api/") || req.mode === "navigate") {
     // API 与 HTML 都走网络优先：防灾信息必须最新，断网才退回缓存

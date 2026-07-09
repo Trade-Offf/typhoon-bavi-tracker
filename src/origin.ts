@@ -35,7 +35,11 @@ export function openOriginModal(): void {
         <button type="button" class="gm-close" aria-label="关闭">×</button>
       </div>
       <div class="gm-body">${body}
-        <p class="om-foot">纯个人公益项目 · 无广告 · 数据来源均为官方 · 以官方预警为准</p>
+        <p class="om-foot">
+          纯个人公益项目 · 无广告 · 数据来源均为官方 · 以官方预警为准<br />
+          <a class="om-link" href="https://www.bilibili.com/video/BV148Ms6MET9/" target="_blank" rel="noopener">这个网站是怎么来的 · B站视频记录 →</a><br />
+          <a class="om-link" href="https://space.bilibili.com/343786927" target="_blank" rel="noopener">背景音乐《宫花红》赤星版 · @北极星电台（已获作者授权）→</a>
+        </p>
       </div>
     </div>`;
   document.body.appendChild(overlay);
