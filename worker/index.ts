@@ -178,6 +178,29 @@ async function handleNews(request: Request, env: Env, ctx: ExecutionContext): Pr
   return resp;
 }
 
+/** CF 静态资源对 MP3 Range 请求处理异常会挂死；去掉 Range 并声明 Accept-Ranges: none，让浏览器整段拉取 */
+const MUSIC_BYTES = 5_983_790;
+
+async function serveMusic(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const upstream = new Request(url.toString(), { method: "GET" });
+  const res = await env.ASSETS.fetch(upstream);
+  if (!res.ok) return res;
+
+  const headers = new Headers();
+  headers.set("Content-Type", "audio/mpeg");
+  headers.set("Accept-Ranges", "none");
+  headers.set(
+    "Cache-Control",
+    res.headers.get("Cache-Control") ?? "public, max-age=31536000, immutable",
+  );
+  headers.set("Content-Length", res.headers.get("Content-Length") ?? String(MUSIC_BYTES));
+  const etag = res.headers.get("ETag");
+  if (etag) headers.set("ETag", etag);
+
+  return new Response(res.body, { status: 200, headers });
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -190,6 +213,8 @@ export default {
 
     const m = url.pathname.match(/^\/api\/typhoon\/(\w+)$/);
     if (m) return handleTyphoon(request, m[1]);
+
+    if (url.pathname.startsWith("/music/")) return serveMusic(request, env);
 
     return env.ASSETS.fetch(request);
   },
