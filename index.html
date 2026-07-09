@@ -43,7 +43,7 @@
   </header>
 
   <!-- 移动端常驻实况条（小屏时由 mobile 布局注入 HUD 统计块） -->
-  <div id="mstats" aria-hidden="true"></div>
+  <div id="mstats"></div>
 
   <!-- 左侧 HUD 信息面板 -->
   <aside id="hud" aria-label="台风实时状态">
@@ -104,8 +104,8 @@
   <aside id="drawer" class="open" aria-label="资讯与应对指南">
     <button id="drawer-handle" type="button" aria-label="拖动调整面板高度"><span></span></button>
     <div class="drawer-tabs" role="tablist">
-      <button class="drawer-tab active" data-panel="news" role="tab">实时资讯</button>
-      <button class="drawer-tab" data-panel="guide" role="tab">应对指南</button>
+      <button class="drawer-tab active" data-panel="news" role="tab" aria-selected="true" aria-controls="panel-news">实时资讯</button>
+      <button class="drawer-tab" data-panel="guide" role="tab" aria-selected="false" aria-controls="panel-guide">应对指南</button>
       <button id="drawer-close" aria-label="收起面板">
         <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M8.6 5.6 15 12l-6.4 6.4L10 19.8l7.8-7.8L10 4.2z"/></svg>
       </button>

@@ -251,18 +251,27 @@ export class TyphoonMap {
       // 桌面 hover 预览
       map.on("mousemove", layer, show);
       map.on("mouseleave", layer, hide);
-      // 触屏点击查看详情（hover 在触屏不可用）
-      map.on("click", layer, (e) => {
-        show(e);
-        e.originalEvent?.stopPropagation();
-      });
     }
-    // 触屏点空白处关闭点位详情
+    // 点击查看详情：以点击点为中心扩一圈查询框，手指点不准也能命中
+    // （路径点视觉半径仅 3–8px，移动端 ±16px 容错约等于 44px 热区）
+    const pad = this.isSmall ? 16 : 8;
     map.on("click", (e) => {
-      const hits = map.queryRenderedFeatures(e.point, {
+      const box: [maplibregl.PointLike, maplibregl.PointLike] = [
+        [e.point.x - pad, e.point.y - pad],
+        [e.point.x + pad, e.point.y + pad],
+      ];
+      const hits = map.queryRenderedFeatures(box, {
         layers: ["track-points-c", "forecast-points-c"],
       });
-      if (hits.length === 0) popup.remove();
+      const f = hits[0];
+      if (!f) {
+        hide();
+        return;
+      }
+      const coords =
+        f.geometry.type === "Point" ? (f.geometry.coordinates as [number, number]) : e.lngLat;
+      map.getCanvas().style.cursor = "pointer";
+      popup.setLngLat(coords).setHTML(String(f.properties?.html ?? "")).addTo(map);
     });
   }
 
@@ -345,6 +354,7 @@ export class TyphoonMap {
       if (!marker) {
         const el = document.createElement("button");
         el.className = im.name === "我的位置" ? "city-marker mine" : "city-marker";
+        el.setAttribute("aria-label", `查看${im.name}的波及倒计时`);
         el.innerHTML = `<i></i><span>${im.name}</span>`;
         el.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -377,7 +387,13 @@ export class TyphoonMap {
       this.map.flyTo({ center: [im.lng, im.lat], zoom: Math.max(this.map.getZoom(), 6.2), offset, duration: 1200 });
     }
     this.cityPopup?.remove();
-    this.cityPopup = new maplibregl.Popup({ closeButton: true, offset: 30, maxWidth: "300px" })
+    // 移动端固定 anchor:bottom（气泡在点位上方展开），从根上避开底部抽屉与时间轴
+    this.cityPopup = new maplibregl.Popup({
+      closeButton: true,
+      offset: 30,
+      maxWidth: "300px",
+      ...(this.isSmall ? { anchor: "bottom" as const } : {}),
+    })
       .setLngLat([im.lng, im.lat])
       .setHTML(cityPopupHtml(im))
       .addTo(this.map);

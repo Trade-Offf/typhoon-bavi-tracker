@@ -58,6 +58,8 @@ function buildMobileTabs(): void {
     b.className = "drawer-tab mobile-tab";
     b.dataset.panel = panel;
     b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", "false");
+    b.setAttribute("aria-controls", `panel-${panel}`);
     b.textContent = label;
     tabs.insertBefore(b, before);
     return b;
@@ -93,7 +95,9 @@ function buildMobileTabs(): void {
 
 function activateTab(panel: string): void {
   document.querySelectorAll(".drawer-tab").forEach((t) => {
-    t.classList.toggle("active", (t as HTMLElement).dataset.panel === panel);
+    const on = (t as HTMLElement).dataset.panel === panel;
+    t.classList.toggle("active", on);
+    t.setAttribute("aria-selected", String(on));
   });
   document.querySelectorAll(".drawer-panel").forEach((p) => {
     p.classList.toggle("active", p.id === `panel-${panel}`);

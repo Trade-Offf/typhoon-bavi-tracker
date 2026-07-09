@@ -435,9 +435,13 @@ function wireControls(): void {
   $(".drawer-tabs").addEventListener("click", (e) => {
     const tab = (e.target as HTMLElement).closest<HTMLButtonElement>(".drawer-tab");
     if (!tab || !tab.dataset.panel) return;
-    document.querySelectorAll(".drawer-tab").forEach((t) => t.classList.remove("active"));
+    document.querySelectorAll(".drawer-tab").forEach((t) => {
+      t.classList.remove("active");
+      t.setAttribute("aria-selected", "false");
+    });
     document.querySelectorAll(".drawer-panel").forEach((p) => p.classList.remove("active"));
     tab.classList.add("active");
+    tab.setAttribute("aria-selected", "true");
     document.getElementById(`panel-${tab.dataset.panel}`)?.classList.add("active");
   });
   $("#drawer-close").addEventListener("click", () => {
