@@ -563,6 +563,15 @@ async function initialLoad(): Promise<void> {
 /** ———— 离线可用 ———— */
 // 台风天网络最不可靠，SW 缓存最近一次数据：断网也能看倒计时、指南和紧急电话
 if ("serviceWorker" in navigator) {
+  // 已有旧 SW 时记录下来：新版本 skipWaiting+claim 接管后自动刷新一次，
+  // 让存量用户无需手动清缓存即可拿到最新修复（首次访问无旧 SW 则不刷新，避免无谓重载）。
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloaded || !hadController) return;
+    reloaded = true;
+    window.location.reload();
+  });
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   });
