@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>台风巴威 · OG 分享卡（1200×630）</title>
+    <style>
+      body {
+        background: #111;
+        margin: 0;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        font-family: -apple-system, "PingFang SC", sans-serif;
+      }
+      canvas {
+        width: min(900px, 92vw);
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 10px 50px rgba(0, 0, 0, 0.65);
+      }
+      button {
+        padding: 10px 26px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+        background: #e02020;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      p { color: #8fa3c7; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <!--
+      转发链接预览卡（微信/微博/B站等抓取 og:image 用）。
+      1200×630 是社交平台通用推荐尺寸，导出为 PNG（SVG 很多平台抓取不了，必须是位图）。
+      这是静态品牌卡，不接实时数据——og:image 会被平台缓存很久，不适合塞动态数字。
+    -->
+    <canvas id="c" width="1200" height="630"></canvas>
+    <button type="button" onclick="dl()">下载 og.png</button>
+    <p>生成后放到 public/og.png，index.html 的 og:image 已指向这里</p>
+
+    <script>
+      const SANS = '"PingFang SC","Microsoft YaHei",sans-serif';
+      const BG = "#0a0f1c";
+      const INK = "#e8eefb";
+      const DIM = "#8fa3c7";
+      const RED = "#ff3131";
+      const AMBER = "#ffd23f";
+      const W = 1200;
+      const H = 630;
+      const M = 72;
+
+      const c = document.getElementById("c");
+      const x = c.getContext("2d");
+
+      function drawEye(ex, ey) {
+        const glow = x.createRadialGradient(ex, ey, 0, ex, ey, 260);
+        glow.addColorStop(0, "rgba(255,49,49,0.18)");
+        glow.addColorStop(1, "rgba(255,49,49,0)");
+        x.fillStyle = glow;
+        x.fillRect(ex - 260, ey - 260, 520, 520);
+        for (let i = 6; i >= 1; i--) {
+          x.beginPath();
+          x.arc(ex, ey, i * 17, 0, Math.PI * 2);
+          x.strokeStyle = `rgba(143,163,199,${0.08 + (6 - i) * 0.016})`;
+          x.lineWidth = 1.2;
+          x.stroke();
+        }
+        x.save();
+        x.strokeStyle = "rgba(255,49,49,0.5)";
+        x.lineWidth = 3.5;
+        x.lineCap = "round";
+        for (let k = 0; k < 3; k++) {
+          const a0 = (k * 2 * Math.PI) / 3;
+          x.beginPath();
+          x.arc(ex, ey, 66, a0, a0 + Math.PI * 0.42);
+          x.stroke();
+        }
+        x.restore();
+        x.beginPath();
+        x.arc(ex, ey, 18, 0, Math.PI * 2);
+        x.fillStyle = RED;
+        x.fill();
+        x.beginPath();
+        x.arc(ex, ey, 8, 0, Math.PI * 2);
+        x.fillStyle = BG;
+        x.fill();
+      }
+
+      function draw() {
+        x.fillStyle = BG;
+        x.fillRect(0, 0, W, H);
+        drawEye(970, 210);
+
+        // 左上角红色小 pill
+        x.font = `700 22px ${SANS}`;
+        const pillTxt = "台风红色预警";
+        const pw = x.measureText(pillTxt).width + 40;
+        x.fillStyle = "rgba(255,49,49,0.16)";
+        x.beginPath();
+        x.moveTo(M + 22, 64);
+        x.arcTo(M + pw, 64, M + pw, 64 + 46, 22);
+        x.arcTo(M + pw, 64 + 46, M, 64 + 46, 22);
+        x.arcTo(M, 64 + 46, M, 64, 22);
+        x.arcTo(M, 64, M + pw, 64, 22);
+        x.closePath();
+        x.fill();
+        x.strokeStyle = "rgba(255,49,49,0.5)";
+        x.lineWidth = 1.5;
+        x.stroke();
+        x.textBaseline = "middle";
+        x.fillStyle = "#ff8a8a";
+        x.fillText(pillTxt, M + 20, 64 + 23);
+
+        // 主标题
+        x.textBaseline = "alphabetic";
+        x.fillStyle = INK;
+        x.font = `900 62px ${SANS}`;
+        x.fillText("超强台风「巴威」", M, 250);
+        x.fillText("实时追踪", M, 322);
+
+        x.fillStyle = DIM;
+        x.font = `600 30px ${SANS}`;
+        const seg1 = "你的城市 ";
+        x.fillText(seg1, M, 390);
+        const seg1w = x.measureText(seg1).width;
+        x.fillStyle = AMBER;
+        x.fillText("还剩多久？", M + seg1w, 390);
+
+        x.fillStyle = DIM;
+        x.font = `400 24px ${SANS}`;
+        x.fillText("实时路径 · 到达倒计时 · 应急指南", M, 445);
+
+        // 底部品牌
+        x.fillStyle = "rgba(255,255,255,0.12)";
+        x.fillRect(0, H - 96, W, 1);
+        x.textBaseline = "middle";
+        x.fillStyle = "#fff";
+        x.font = `900 34px ${SANS}`;
+        x.fillText("chinaupdated.com", M, H - 48);
+      }
+
+      function dl() {
+        const a = document.createElement("a");
+        a.download = "og.png";
+        a.href = c.toDataURL("image/png");
+        a.click();
+      }
+
+      draw();
+    </script>
+  </body>
+</html>

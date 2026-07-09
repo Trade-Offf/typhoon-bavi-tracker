@@ -8,10 +8,13 @@
   <title>台风巴威实时追踪 · 波及倒计时与应对指南</title>
   <meta property="og:type" content="website" />
   <meta property="og:title" content="台风巴威 BAVI 实时追踪 · 你的城市还有多久被波及？" />
-  <meta property="og:description" content="实时路径 + 中日美台四机构预报对比 + 城市波及倒计时 + 防台应对指南。转发给你关心的人，提前准备。" />
+  <meta property="og:description" content="实时路径 + 多家官方机构预报对比 + 城市波及倒计时 + 防台应对指南。转发给你关心的人，提前准备。" />
   <meta property="og:url" content="https://chinaupdated.com/" />
-  <meta property="og:image" content="https://chinaupdated.com/og.svg" />
+  <meta property="og:image" content="https://chinaupdated.com/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://chinaupdated.com/og.png" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="preconnect" href="https://webst01.is.autonavi.com" />
   <link rel="preconnect" href="https://webst02.is.autonavi.com" />
@@ -55,7 +58,7 @@
       <div class="stat-grid">
         <div class="stat"><label>中心风速</label><b id="s-speed">—</b><small>m/s</small></div>
         <div class="stat"><label>中心气压</label><b id="s-pressure">—</b><small>hPa</small></div>
-        <div class="stat"><label>风力等级</label><b id="s-power">—</b><small>级</small></div>
+        <div class="stat"><label>风力等级</label><b id="s-power">—</b><small id="s-power-unit">级</small></div>
         <div class="stat"><label>移动</label><b id="s-move">—</b><small id="s-move-unit">km/h</small></div>
       </div>
       <div class="pos-row" id="s-pos">—</div>
@@ -81,6 +84,8 @@
     <div class="hud-links" id="hud-links">
       <a href="https://github.com/Trade-Offf/typhoon-bavi-tracker" target="_blank" rel="noopener">GitHub 开源 · 欢迎共建</a>
       <a href="http://typhoon.nmc.cn/web.html" target="_blank" rel="noopener">中央气象台官方</a>
+      <button type="button" id="btn-origin" class="hud-link-btn">聊聊初心 →</button>
+      <span>断网也能看倒计时与应急指南</span>
       <span>信息仅供参考，请以官方预警为准</span>
     </div>
   </aside>

@@ -2,11 +2,13 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
 import { TyphoonMap } from "./map";
 import type { TyphoonData } from "./types";
-import { intensityOf, INTENSITY_ORDER, agencyColor } from "./intensity";
+import { intensityOf, INTENSITY_ORDER, agencyColor, powerValue, powerUnit } from "./intensity";
 import { renderGuide, openGuideModal, setGuideContext } from "./guide";
 import { initNews, refreshNews } from "./news";
 import { initSlogans } from "./slogan";
-import { openShareModal } from "./share";
+import { openShareModal, type SharePayload } from "./share";
+import type { PosterData } from "./poster";
+import { openOriginModal } from "./origin";
 import { initMobile, isMobile } from "./mobile";
 import { computeImpacts, formatEta, CITIES, MY_LOCATION, type City, type CityImpact } from "./impact";
 
@@ -183,7 +185,24 @@ function pickFocusImpact(impacts: CityImpact[]): CityImpact | undefined {
   return impacts.find((x) => x.status === "inside") ?? impacts.find((x) => x.status === "incoming");
 }
 
-function sharePayload(): { title: string; text: string; url: string } {
+function posterData(incoming: CityImpact | undefined): PosterData | undefined {
+  const last = data?.points[data.points.length - 1];
+  if (!last) return undefined;
+  return {
+    typhoonNo: "2026 年第 9 号",
+    nameCn: data?.name || "巴威",
+    nameEn: data?.enName || "BAVI",
+    speed: last.speed,
+    pressure: last.pressure,
+    power: last.power,
+    strong: last.strong,
+    focusCity: incoming?.name,
+    focusEtaText:
+      incoming?.status === "inside" ? "已进入影响范围" : incoming?.etaT ? formatEta(incoming.etaT) : undefined,
+  };
+}
+
+function sharePayload(): SharePayload {
   // 分享链接只带公共城市：我的位置是私人坐标，不进入任何 URL
   const incoming = pickFocusImpact(latestImpacts.filter((x) => x.name !== MY_LOCATION));
   const city = incoming?.name;
@@ -192,9 +211,9 @@ function sharePayload(): { title: string; text: string; url: string } {
   if (incoming?.status === "inside") {
     text = `台风巴威大风可能影响${city}，请留意官方预警，转告亲友：`;
   } else if (incoming?.status === "incoming" && incoming.etaT) {
-    text = `台风巴威预计约 ${formatEta(incoming.etaT)} 后${city}进入大风影响范围（估算），可关注官方预警并提前准备：`;
+    text = `台风巴威预计${formatEta(incoming.etaT)}后${city}进入大风影响范围（估算），可关注官方预警并提前准备：`;
   }
-  return { title: "台风巴威实时追踪 · 波及倒计时", text, url };
+  return { title: "台风巴威实时追踪 · 波及倒计时", text, url, poster: posterData(incoming) };
 }
 
 function updateAlertBanner(impacts: CityImpact[]): void {
@@ -288,7 +307,8 @@ function updateHud(
   badge.style.setProperty("--badge-color", style.color);
   $("#s-speed").textContent = String(Math.round(speed));
   $("#s-pressure").textContent = String(Math.round(pressure));
-  $("#s-power").textContent = power != null ? String(power) : "—";
+  $("#s-power").textContent = powerValue(power);
+  $("#s-power-unit").textContent = powerUnit(power);
   $("#s-move").textContent = moveDir ? `${moveDir} ${moveSpeed ?? "—"}` : "—";
   $("#s-pos").textContent = `中心位置 ${lat.toFixed(1)}°N, ${lng.toFixed(1)}°E · ${time}`;
 }
@@ -453,6 +473,9 @@ function wireControls(): void {
 
   // 一键直达"现在该做什么"：慌乱时刻的最短路径
   document.getElementById("btn-guide")?.addEventListener("click", () => openGuideModal());
+
+  // 角落入口：聊聊初心
+  document.getElementById("btn-origin")?.addEventListener("click", () => openOriginModal());
 }
 
 /** ———— 数据新鲜度 ———— */
@@ -472,8 +495,9 @@ function updateFreshness(): void {
     const min = Math.floor((Date.now() - lastFetchAt) / 60000);
     stale = min >= 15;
     if (stale) tail = small ? " · ⚠ 可能滞后" : " · ⚠ 数据可能滞后，以官方预警为准";
-    // 移动端空间紧张：正常同步不显示尾注（避免截断），仅在过期时提示
-    else if (small) tail = "";
+    // 移动端空间紧张：用更短的措辞常驻显示，而不是完全不提示——
+    // 不然用户没法判断这数据到底是不是刚更新的
+    else if (small) tail = min < 1 ? " · 刚同步" : ` · ${min}分前`;
     else if (min < 1) tail = " · 刚刚同步";
     else tail = ` · ${min} 分钟前同步`;
   }

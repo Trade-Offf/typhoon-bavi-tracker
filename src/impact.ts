@@ -22,7 +22,10 @@ export const CITIES: City[] = [
   { name: "温州", lng: 120.7, lat: 28.0 },
   { name: "台州", lng: 121.42, lat: 28.66 },
   { name: "宁波", lng: 121.55, lat: 29.87 },
+  { name: "舟山", lng: 122.21, lat: 29.99 },
+  { name: "绍兴", lng: 120.58, lat: 30.02 },
   { name: "杭州", lng: 120.15, lat: 30.29 },
+  { name: "嘉兴", lng: 120.76, lat: 30.75 },
   { name: "上海", lng: 121.47, lat: 31.23 },
 ];
 

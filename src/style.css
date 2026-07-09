@@ -802,6 +802,16 @@ body.share-open { overflow: hidden; }
 .hud-links a { color: #5eb0ff; text-decoration: none; }
 .hud-links a:hover { text-decoration: underline; }
 .hud-links span { color: var(--ink-faint); }
+.hud-link-btn {
+  align-self: flex-start;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #5eb0ff;
+  font-size: 10px;
+  cursor: pointer;
+}
+.hud-link-btn:hover { text-decoration: underline; }
 
 /* ———— 正能量文案轮播 ———— */
 #slogan {
@@ -1207,8 +1217,9 @@ body.drawer-open #drawer-open { display: none; }
   padding: 0 2px 4px;
 }
 
-/* 指南全屏弹窗 */
-#guide-modal {
+/* 指南 / 初心 全屏弹窗（共用覆盖层样式） */
+#guide-modal,
+#origin-modal {
   position: fixed;
   inset: 0;
   z-index: 90;
@@ -1218,6 +1229,28 @@ body.drawer-open #drawer-open { display: none; }
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   animation: fadein 0.18s ease-out;
+}
+/* 初心弹窗正文：叙事段落 */
+.om-sec { margin-bottom: 16px; }
+.om-sec h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+.om-sec p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.85;
+  color: var(--ink-dim);
+}
+.om-foot {
+  margin: 4px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--panel-border);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-faint);
 }
 @keyframes fadein { from { opacity: 0; } }
 .gm-card {

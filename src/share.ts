@@ -1,10 +1,13 @@
 /** 转发扩散：二维码弹窗（动态加载 qrcode，不阻塞首屏） */
 import { isMobile } from "./mobile";
+import { sharePoster, type PosterData } from "./poster";
 
 export interface SharePayload {
   title: string;
   text: string;
   url: string;
+  /** 有则展示"生成分享图"按钮，用真实数据现场画一张可分享的海报 */
+  poster?: PosterData;
 }
 
 let modal: HTMLElement | null = null;
@@ -30,6 +33,7 @@ function ensureModal(): HTMLElement {
         <button type="button" class="share-btn primary" id="share-copy">复制链接</button>
         <button type="button" class="share-btn" id="share-save">保存二维码</button>
         <button type="button" class="share-btn" id="share-native" hidden>系统分享</button>
+        <button type="button" class="share-btn" id="share-poster" hidden>生成分享图</button>
       </div>
       <p class="share-hint">微信扫一扫 · 或保存图片发到群聊</p>
     </div>`;
@@ -74,6 +78,20 @@ function ensureModal(): HTMLElement {
     }
   });
 
+  modal.querySelector("#share-poster")!.addEventListener("click", async () => {
+    if (!currentPayload?.poster) return;
+    const btn = modal!.querySelector("#share-poster") as HTMLButtonElement;
+    const original = btn.textContent;
+    btn.textContent = "生成中…";
+    btn.disabled = true;
+    try {
+      await sharePoster(currentPayload.poster);
+    } finally {
+      btn.textContent = original;
+      btn.disabled = false;
+    }
+  });
+
   return modal;
 }
 
@@ -91,11 +109,13 @@ export async function openShareModal(payload: SharePayload): Promise<void> {
   const hasShare = typeof navigator.share === "function";
   const nativeBtn = el.querySelector("#share-native") as HTMLButtonElement;
   const copyBtn = el.querySelector("#share-copy") as HTMLButtonElement;
+  const posterBtn = el.querySelector("#share-poster") as HTMLButtonElement;
   const actions = el.querySelector(".share-actions") as HTMLElement;
   const hint = el.querySelector(".share-hint") as HTMLElement;
   const title = el.querySelector("#share-title") as HTMLElement;
 
   nativeBtn.hidden = !hasShare;
+  posterBtn.hidden = !payload.poster;
   // 手机端优先「系统分享」：可直接发给微信/朋友，扫自己屏幕的二维码没意义
   if (hasShare) {
     nativeBtn.classList.add("primary");

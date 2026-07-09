@@ -20,6 +20,27 @@ export function intensityOf(strong: string): IntensityStyle {
   return LEVELS[strong] ?? { color: "#9aa5b1", rank: -1 };
 }
 
+// 我国风力等级国标（GB/T 19201）最高 17 级，17 级以上统称「17 级以上」，不存在 18 级
+const MAX_POWER = 17;
+
+/** 展示层封顶的风力数字，超出国标一律显示 17 */
+export function powerValue(power: number | null): string {
+  if (power == null) return "—";
+  return String(Math.min(MAX_POWER, power));
+}
+
+/** 风力单位：达到或超过国标顶格时显示「级以上」，否则「级」 */
+export function powerUnit(power: number | null): string {
+  if (power == null) return "级";
+  return power >= MAX_POWER ? "级以上" : "级";
+}
+
+/** 完整风力标签："16级" / "17级以上" / ""（空值） */
+export function powerLabel(power: number | null): string {
+  if (power == null || power <= 0) return "";
+  return `${powerValue(power)}${powerUnit(power)}`;
+}
+
 /** 节点半径（px）随风速增大 */
 export function radiusForSpeed(speed: number): number {
   return Math.max(3.5, Math.min(11, 3 + (speed - 15) * 0.16));

@@ -97,7 +97,8 @@ export function speedToPower(speed: number): number {
   ];
   let power = 5;
   for (const [th, p] of table) if (speed >= th) power = p;
-  return speed >= 61.3 ? 18 : power;
+  // 我国风力等级国标最高 17 级，超出只能称「17 级以上」，绝不产出 18 这种不存在的等级
+  return power;
 }
 
 /** 浙江省水利厅台风 API -> TyphoonData */
