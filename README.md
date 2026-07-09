@@ -8,6 +8,9 @@
 
 **线上访问：https://chinaupdated.com**
 
+<img width="1542" height="817" alt="截屏2026-07-09 15 44 09" src="https://github.com/user-attachments/assets/aef31cf1-3b2b-41b0-b261-95e99c9d975c" />
+
+
 ## 快速开始（克隆与部署）
 
 ```bash
