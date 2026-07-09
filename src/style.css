@@ -72,9 +72,10 @@
 :focus:not(:focus-visible) { outline: none; }
 
 /* 小尺寸按钮统一用伪元素扩热区：视觉不变，指尖容错 ≥44px。
-   position: relative 只对静态定位的按钮生效；已是 absolute 的按钮
-   （.warn-close/.share-close/#hud-close）由后文各自的规则覆盖，互不干扰 */
-.warn-close, .loc-clear, .gm-close, .share-close, #hud-close, #drawer-close, .city-marker {
+   注意：.city-marker 由 MapLibre 强制 position:absolute 定位（转译到经纬度），
+   绝不能在此覆盖成 relative，否则 marker 会掉进文档流、被整块 canvas 挤到画面底部。
+   absolute 本身也是其 ::after 的定位上下文，热区照常生效。 */
+.warn-close, .loc-clear, .gm-close, .share-close, #hud-close, #drawer-close {
   position: relative;
 }
 .warn-close::after,
@@ -707,7 +708,12 @@ body.is-playing .play-btn .icon-pause { display: block; }
 body.share-open { overflow: hidden; }
 
 /* ———— 城市波及标记与倒计时 ———— */
+/* marker 定位外壳：仅被 MapLibre 定位，绝不加尺寸/边距/定位副作用（见 map.ts markerShell）。
+   默认不拦截指针，保证在装饰性标记（台风眼/日期）上仍可拖拽地图；可交互内层自行开启。 */
+.mk-shell { line-height: 0; pointer-events: none; }
 .city-marker {
+  position: relative; /* 作为 ::after 触控热区的定位上下文；此处是内层元素，不影响 MapLibre 外壳 */
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -716,6 +722,7 @@ body.share-open { overflow: hidden; }
   border: none;
   cursor: pointer;
   padding: 4px;
+  line-height: normal;
 }
 .city-marker i {
   width: 9px; height: 9px;

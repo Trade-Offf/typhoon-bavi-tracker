@@ -11,6 +11,24 @@ type FC = FeatureCollection;
 const EMPTY: FC = { type: "FeatureCollection", features: [] };
 
 /**
+ * 把业务内容包进一个「定位外壳」再交给 MapLibre。
+ *
+ * MapLibre 依赖 `.maplibregl-marker { position:absolute }` + 内联 transform 把 marker
+ * 钉在经纬度上。一旦业务 CSS（如触控热区的 position:relative）命中这个根元素，就会
+ * 覆盖定位，使 marker 掉进文档流——高缩放时投影像素分散尚不明显，缩小到世界级时所有
+ * 城市投影到近乎同一点，只剩下每个 marker 的堆叠高度，于是排成一条竖线滑向画面底部。
+ *
+ * 外壳只承担被 MapLibre 定位的职责、不加任何业务样式；所有可视样式与交互都在内层元素。
+ * 这样无论样式表引入顺序、类名如何演化，都不可能再污染 marker 定位。灾害预警不容错位。
+ */
+function markerShell(content: HTMLElement): HTMLElement {
+  const shell = document.createElement("div");
+  shell.className = "mk-shell";
+  shell.appendChild(content);
+  return shell;
+}
+
+/**
  * 中文底图：高德卫星影像 + 透明中文注记（国内 CDN，行政边界符合中国标准）。
  * 不再使用 glyphs 字体服务，地图文字全部由注记瓦片与 DOM 标记承担。
  */
@@ -310,7 +328,7 @@ export class TyphoonMap {
         const el = document.createElement("div");
         el.className = "day-label";
         el.textContent = `${parseInt(p.time.slice(5, 7))}月${parseInt(p.time.slice(8, 10))}日`;
-        return new maplibregl.Marker({ element: el, anchor: "top", offset: [0, 10] })
+        return new maplibregl.Marker({ element: markerShell(el), anchor: "top", offset: [0, 10] })
           .setLngLat([p.lng, p.lat])
           .addTo(this.map);
       });
@@ -353,21 +371,23 @@ export class TyphoonMap {
     for (const im of impacts) {
       let marker = this.cityMarkers.get(im.name);
       if (!marker) {
-        const el = document.createElement("button");
-        el.className = im.name === "我的位置" ? "city-marker mine" : "city-marker";
-        el.setAttribute("aria-label", `查看${im.name}的波及倒计时`);
-        el.innerHTML = `<i></i><span>${im.name}</span>`;
-        el.addEventListener("click", (e) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = im.name === "我的位置" ? "city-marker mine" : "city-marker";
+        btn.setAttribute("aria-label", `查看${im.name}的波及倒计时`);
+        btn.innerHTML = `<i></i><span>${im.name}</span>`;
+        btn.addEventListener("click", (e) => {
           e.stopPropagation();
           this.focusCity(im.name, false);
         });
-        marker = new maplibregl.Marker({ element: el, anchor: "bottom" })
+        marker = new maplibregl.Marker({ element: markerShell(btn), anchor: "bottom" })
           .setLngLat([im.lng, im.lat])
           .addTo(this.map);
         this.cityMarkers.set(im.name, marker);
       }
       marker.setLngLat([im.lng, im.lat]);
-      marker.getElement().dataset.status = im.status;
+      const btn = marker.getElement().firstElementChild as HTMLElement | null;
+      if (btn) btn.dataset.status = im.status;
     }
   }
 
@@ -426,7 +446,7 @@ export class TyphoonMap {
         <circle cx="50" cy="50" r="13" fill="none" stroke="currentColor" stroke-width="6"/>
       </svg>`;
     this.eyeEl = el;
-    this.eyeMarker = new maplibregl.Marker({ element: el }).setLngLat([0, 0]).addTo(this.map);
+    this.eyeMarker = new maplibregl.Marker({ element: markerShell(el) }).setLngLat([0, 0]).addTo(this.map);
   }
 
   /** 按插值状态渲染台风本体：眼、风圈、进度轨迹 */
