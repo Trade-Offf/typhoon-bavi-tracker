@@ -219,11 +219,14 @@ function applyMobile(): void {
   document.body.classList.remove("drawer-open");
   activateTab("impact");
   // 等布局稳定后再定位,拿到正确的 offsetHeight
-  requestAnimationFrame(() => setDetent("peek"));
+  requestAnimationFrame(() => {
+    setDetent("peek");
+    syncAlertBannerHost();
+  });
 }
 
 function applyDesktop(): void {
-  document.body.classList.remove("is-mobile", "sheet-open");
+  document.body.classList.remove("is-mobile", "sheet-open", "music-on");
   // 还原被移动的节点
   for (const id of MOVABLE) restoreHome(id);
   // 清理移动端 Tab / 面板
@@ -238,6 +241,16 @@ function applyDesktop(): void {
   document.body.classList.add("drawer-open");
   // 恢复桌面默认激活 Tab:实时资讯
   activateTab("news");
+  syncAlertBannerHost();
+}
+
+/** 移动端把预警条挂进实况栏纵向排列，桌面端放回 body 固定定位 */
+export function syncAlertBannerHost(): void {
+  const banner = document.getElementById("alert-banner");
+  if (!banner) return;
+  const host = mq.matches ? document.getElementById("mstats") : document.body;
+  if (host && banner.parentElement !== host) host.appendChild(banner);
+  banner.classList.toggle("in-mstats", mq.matches);
 }
 
 export function initMobile(): void {

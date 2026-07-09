@@ -9,8 +9,8 @@
  * 结果：断网后页面依然能打开，倒计时、应对指南、紧急电话全部可用，
  * 台风数据停留在最近一次成功获取的状态（前端会标注"数据可能滞后"）。
  */
-const STATIC_CACHE = "bavi-static-v2";
-const DATA_CACHE = "bavi-data-v2";
+const STATIC_CACHE = "bavi-static-v3";
+const DATA_CACHE = "bavi-data-v3";
 
 self.addEventListener("install", (e) => {
   e.waitUntil(

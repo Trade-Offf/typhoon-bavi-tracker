@@ -10,7 +10,8 @@ import { openShareModal, type SharePayload } from "./share";
 import type { PosterData } from "./poster";
 import { openOriginModal } from "./origin";
 import { initMusic } from "./music";
-import { initMobile, isMobile } from "./mobile";
+import { initMobile, isMobile, syncAlertBannerHost } from "./mobile";
+import { plainMoveDir } from "./direction";
 import { computeImpacts, formatEta, CITIES, MY_LOCATION, type City, type CityImpact } from "./impact";
 
 const TYPHOON_ID = "202609"; // 2026 年第 9 号台风 巴威 BAVI
@@ -241,6 +242,7 @@ function updateAlertBanner(impacts: CityImpact[]): void {
         ? `${target.name} · ${formatEta(target.etaT!)}后波及 →`
         : `${target.name} · 预计 ${formatEta(target.etaT!)} 后波及 · 点击看详情`;
   banner.textContent = msg;
+  syncAlertBannerHost();
 }
 
 const playback = new Playback((t) => {
@@ -310,7 +312,17 @@ function updateHud(
   $("#s-pressure").textContent = String(Math.round(pressure));
   $("#s-power").textContent = powerValue(power);
   $("#s-power-unit").textContent = powerUnit(power);
-  $("#s-move").textContent = moveDir ? `${moveDir} ${moveSpeed ?? "—"}` : "—";
+  const dir = plainMoveDir(moveDir);
+  if (dir && moveSpeed != null) {
+    $("#s-move").textContent = dir;
+    $("#s-move-unit").textContent = `${Math.round(moveSpeed)} km/h`;
+  } else if (dir) {
+    $("#s-move").textContent = dir;
+    $("#s-move-unit").textContent = "—";
+  } else {
+    $("#s-move").textContent = "—";
+    $("#s-move-unit").textContent = "km/h";
+  }
   $("#s-pos").textContent = `中心位置 ${lat.toFixed(1)}°N, ${lng.toFixed(1)}°E · ${time}`;
 }
 

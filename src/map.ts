@@ -2,6 +2,7 @@ import maplibregl from "maplibre-gl";
 import type { FeatureCollection, Feature } from "geojson";
 import type { TyphoonData, TrackPoint } from "./types";
 import { intensityOf, radiusForSpeed, agencyColor, powerLabel } from "./intensity";
+import { plainMoveDir } from "./direction";
 import { windCircleRing, stateAtTime, type TrackState } from "./geo";
 import { formatEta, warningMarks, type CityImpact } from "./impact";
 
@@ -599,7 +600,7 @@ function pointHtml(p: TrackPoint): string {
     <div class="tip-row"><span>强度</span><b style="color:${c}">${p.strong}${powerLabel(p.power) ? ` ${powerLabel(p.power)}` : ""}</b></div>
     <div class="tip-row"><span>风速</span><b>${p.speed} m/s</b></div>
     <div class="tip-row"><span>气压</span><b>${p.pressure} hPa</b></div>
-    ${p.moveDir ? `<div class="tip-row"><span>移向</span><b>${p.moveDir} ${p.moveSpeed ?? "—"} km/h</b></div>` : ""}
+    ${p.moveDir ? `<div class="tip-row"><span>移向</span><b>${plainMoveDir(p.moveDir) ?? p.moveDir} ${p.moveSpeed ?? "—"} km/h</b></div>` : ""}
   </div>`;
 }
 

@@ -5,7 +5,7 @@
  * 设计约束：
  *  - 顶栏一个小圆钮，点击播放/暂停；绝不自动播放（浏览器策略也不允许）
  *  - 音频懒加载：首次点击才创建 <audio>，不为不听音乐的用户浪费 5.7MB 流量
- *  - 版权意识：播放期间展示署名 pill（点击跳转作者 B 站主页），
+ *  - 版权意识：播放时在顶栏播放钮左侧展示署名（曲作者 B 站 + 网站视频），
  *    另在 HUD 链接区与「聊聊初心」弹窗常驻署名
  */
 
@@ -25,7 +25,7 @@ function ensureAudio(): HTMLAudioElement {
 export function initMusic(): void {
   const btn = document.getElementById("btn-music");
   if (!btn) return;
-  const credit = document.getElementById("music-credit");
+  const bar = document.getElementById("music-bar");
 
   const sync = (playing: boolean): void => {
     btn.classList.toggle("playing", playing);
@@ -34,7 +34,8 @@ export function initMusic(): void {
       "aria-label",
       playing ? "暂停背景音乐" : "播放背景音乐《宫花红》赤星版",
     );
-    credit?.classList.toggle("show", playing);
+    bar?.classList.toggle("show", playing);
+    document.body.classList.toggle("music-on", playing);
   };
 
   btn.addEventListener("click", async () => {

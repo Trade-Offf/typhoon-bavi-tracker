@@ -170,7 +170,9 @@ body {
   top: 76px; left: 18px;
   width: 300px;
   max-height: calc(100vh - 210px);
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior-x: none;
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
@@ -178,10 +180,11 @@ body {
   backdrop-filter: blur(16px) saturate(1.3);
   -webkit-backdrop-filter: blur(16px) saturate(1.3);
   z-index: var(--z-ui);
-  scrollbar-width: thin;
-  scrollbar-color: var(--ink-faint) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   transition: transform 0.35s cubic-bezier(0.3, 0.9, 0.3, 1);
 }
+#hud::-webkit-scrollbar { display: none; width: 0; height: 0; }
 #hud.collapsed { transform: translateX(calc(-100% - 26px)); }
 
 /* 面板关闭按钮（HUD 与抽屉共用同一幽灵按钮样式） */
@@ -271,6 +274,7 @@ body.hud-collapsed #hud-open { display: flex; }
   font-size: var(--fs-11);
   color: var(--ink-dim);
   letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
 }
 
 .hud-section { margin-top: 16px; }
@@ -294,6 +298,7 @@ body.hud-collapsed #hud-open { display: flex; }
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.15s;
+  min-width: 0;
 }
 .agency-row:hover { background: var(--hover-bg); }
 .agency-row input { accent-color: var(--accent); cursor: pointer; }
@@ -302,8 +307,15 @@ body.hud-collapsed #hud-open { display: flex; }
   border-top: 2.5px dashed var(--ac);
   flex: none;
 }
-.agency-name { font-size: var(--fs-13); font-weight: 600; }
-.agency-info { font-size: var(--fs-11); color: var(--ink-faint); margin-left: auto; text-align: right; }
+.agency-name { font-size: var(--fs-13); font-weight: 600; flex: 1; min-width: 0; }
+.agency-info {
+  font-size: var(--fs-11);
+  color: var(--ink-faint);
+  margin-left: auto;
+  text-align: right;
+  flex-shrink: 1;
+  min-width: 0;
+}
 .agency-row:has(input:not(:checked)) { opacity: 0.4; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 7px 12px; }
@@ -387,12 +399,19 @@ body.is-playing .play-btn .icon-pause { display: block; }
 }
 
 .scrub-labels {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  column-gap: 6px;
+  align-items: baseline;
   margin-top: 5px;
   font-family: var(--mono);
   font-size: var(--fs-10);
   color: var(--ink-faint);
+}
+.scrub-labels span { white-space: nowrap; }
+#t-start {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #t-current { color: var(--ink); font-weight: 600; }
 
@@ -498,7 +517,7 @@ body.is-playing .play-btn .icon-pause { display: block; }
 /* ———— 顶栏右侧：分享 ———— */
 .topbar-right { display: flex; align-items: center; gap: 10px; pointer-events: auto; }
 
-/* ———— 背景音乐：小圆钮 + 播放期署名 pill ———— */
+/* ———— 背景音乐：顶栏小圆钮 + 播放期居中署名条 ———— */
 #btn-music {
   position: relative;
   flex: none;
@@ -528,30 +547,33 @@ body.is-playing .play-btn .icon-pause { display: block; }
   50% { transform: rotate(9deg); }
 }
 
-#music-credit {
-  position: fixed;
-  top: 62px;
-  right: 22px;
-  z-index: var(--z-ui);
-  padding: 6px 13px;
+#music-bar {
+  display: none;
+  flex: none;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 5px 7px;
+  max-width: min(380px, 36vw);
+  padding: 6px 12px;
   border-radius: var(--radius-pill);
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
+  background: rgba(13, 20, 38, 0.88);
+  border: 1px solid rgba(255, 210, 63, 0.32);
+  font-size: var(--fs-12);
+  line-height: 1.35;
   color: var(--ink-dim);
-  font-size: var(--fs-11);
+  white-space: nowrap;
+  overflow: hidden;
+}
+#music-bar.show { display: flex; }
+.mb-track { color: var(--ink); font-weight: 600; flex: none; }
+.mb-sep { color: var(--ink-faint); flex: none; user-select: none; }
+.mb-link {
+  color: var(--link);
+  font-weight: 600;
   text-decoration: none;
-  letter-spacing: 0.03em;
-  opacity: 0;
-  transform: translateY(-6px);
-  pointer-events: none;
-  transition: opacity 0.25s, transform 0.25s;
+  flex: none;
 }
-#music-credit.show {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-#music-credit:hover { color: var(--warn); }
+.mb-link:hover { color: var(--warn); text-decoration: underline; }
 #btn-share {
   display: flex;
   align-items: center;
@@ -740,8 +762,16 @@ body.share-open { overflow: hidden; }
   background: rgba(255, 49, 49, 0.12);
   outline: 1px solid rgba(255, 49, 49, 0.35);
 }
-.impact-name { font-size: var(--fs-13); font-weight: 600; color: var(--ink); }
-.impact-value { margin-left: auto; font-family: var(--mono); font-size: var(--fs-12); }
+.impact-name {
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.impact-value { margin-left: auto; font-family: var(--mono); font-size: var(--fs-12); flex-shrink: 0; }
 
 .ci-dot {
   width: 8px; height: 8px;
@@ -938,7 +968,7 @@ body.share-open { overflow: hidden; }
   gap: 3px;
   font-size: var(--fs-10);
 }
-.hud-links a { color: var(--link); text-decoration: none; }
+.hud-links a { color: var(--link); text-decoration: none; overflow-wrap: anywhere; }
 .hud-links a:hover { text-decoration: underline; }
 .hud-links span { color: var(--ink-faint); }
 .hud-link-btn {
@@ -1034,13 +1064,16 @@ body.share-open { overflow: hidden; }
 .drawer-panel {
   position: absolute;
   inset: 0;
+  overflow-x: hidden;
   overflow-y: auto;
-  overscroll-behavior: contain; /* 滚到底后不把手势漏给地图 */
+  overscroll-behavior-y: contain; /* 滚到底后不把手势漏给地图 */
+  overscroll-behavior-x: none;
   padding: 12px 14px 16px;
   display: none;
-  scrollbar-width: thin;
-  scrollbar-color: var(--ink-faint) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.drawer-panel::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .drawer-panel.active { display: block; }
 
 #drawer-open {
@@ -1456,22 +1489,27 @@ body.drawer-open #drawer-open { display: none; }
   #btn-music { width: 32px; height: 32px; }
   #btn-music::after { inset: -8px; }
   #btn-share { padding: 7px 13px; font-size: var(--fs-12); }
-
-  /* 署名 pill：顶部被实况条/预警条占满，移到时间轴上方居中 */
-  #music-credit {
-    top: auto;
-    right: auto;
-    left: 50%;
-    bottom: calc(178px + env(safe-area-inset-bottom));
-    transform: translate(-50%, 6px);
-    max-width: calc(100vw - 32px);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  /* 移动端：版权条独立一行，不挤顶栏；播放时顶栏下方全宽展示 */
+  #music-bar {
+    display: none;
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 44px);
+    left: 8px;
+    right: 8px;
+    max-width: none;
+    width: auto;
+    padding: 8px 12px;
+    gap: 6px 8px;
+    font-size: var(--fs-11);
+    justify-content: center;
+    flex-wrap: wrap;
+    white-space: normal;
+    z-index: calc(var(--z-mstats) + 1);
   }
-  #music-credit.show { transform: translate(-50%, 0); }
-  /* 抽屉 half/full 时与时间轴一起让位，避免和列表内容叠在一起 */
-  body.sheet-open #music-credit.show { opacity: 0; pointer-events: none; }
+  #music-bar.show { display: flex; }
+  .mb-track { display: inline; }
+  .mb-sep:first-of-type { display: inline; }
+  body.music-on #mstats { top: calc(env(safe-area-inset-top) + 88px); }
   .datastamp {
     display: block;
     font-size: var(--fs-11);
@@ -1492,9 +1530,11 @@ body.drawer-open #drawer-open { display: none; }
   #hud-open,
   body.hud-collapsed #hud-open { display: none; }
 
-  /* 常驻实况条：始终可见的关键数据 */
+  /* 常驻实况条：纵向堆叠预警条，不再 fixed 层叠遮挡 */
   #mstats {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
     position: fixed;
     top: calc(env(safe-area-inset-top) + 46px);
     left: 8px;
@@ -1533,15 +1573,22 @@ body.drawer-open #drawer-open { display: none; }
   #mstats .stat small { font-size: var(--fs-11); margin-left: 2px; }
   #mstats .pos-row { display: none; }
 
-  /* 波及预警条：移到实况条下方，单行不折行（实况条底约 safe+86，留足间距防叠） */
-  #alert-banner {
-    top: calc(env(safe-area-inset-top) + 104px);
+  /* 预警条：作为实况栏第二行，不再单独 fixed 叠上去 */
+  #alert-banner.in-mstats,
+  #mstats #alert-banner {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
     font-size: var(--fs-12);
-    padding: 6px 14px;
-    max-width: calc(100vw - 24px);
+    padding: 7px 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    animation: none;
   }
 
   /* 底部抽屉：三档位 bottom sheet（transform 由 JS 控制） */
@@ -1634,10 +1681,19 @@ body.drawer-open #drawer-open { display: none; }
     border-width: 4px;
   }
   #scrubber::-moz-range-thumb { width: 22px; height: 22px; border-width: 4px; }
-  .speed-btn { padding: 10px 12px; font-size: var(--fs-12); }
+  .speed-btn { padding: 10px 9px; min-width: 36px; font-size: var(--fs-12); }
 
-  /* 可读性：时间轴刻度与地图日期标注在小屏提一档 */
-  .scrub-labels { font-size: var(--fs-11); }
+  /* 可读性：时间轴刻度与地图日期标注在小屏提一档；去掉 4× 给时间文字让路 */
+  .scrub-labels {
+    font-size: var(--fs-11);
+    column-gap: 6px;
+    grid-template-columns: auto auto auto;
+    justify-content: space-between;
+    width: 100%;
+  }
+  #t-start { overflow: visible; text-overflow: unset; }
+  .speed-group { gap: 3px; }
+  .speed-btn[data-speed="12"] { display: none; }
   .day-label { font-size: var(--fs-11); }
 
   /* 触控目标 ≥44px */
@@ -1659,6 +1715,42 @@ body.drawer-open #drawer-open { display: none; }
   .news-card { padding: 12px 13px; }
   .news-title { font-size: var(--fs-14); }
 
+  /* 「更多」页脚：移动端正文至少 14px，链接行 ≥44px 触控热区 */
+  .hud-foot {
+    margin-top: 20px;
+    font-size: var(--fs-13);
+    line-height: 1.65;
+    color: var(--ink-dim);
+  }
+  .hud-links {
+    margin-top: 14px;
+    padding-top: 14px;
+    gap: 0;
+    font-size: var(--fs-14);
+  }
+  .hud-links a,
+  .hud-link-btn {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 2px;
+    font-size: var(--fs-14);
+    line-height: 1.45;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .hud-link-btn { align-self: stretch; text-align: left; border-bottom: none; }
+  .hud-links span {
+    display: block;
+    font-size: var(--fs-13);
+    line-height: 1.6;
+    padding: 6px 2px;
+  }
+  .hud-links span:first-of-type {
+    margin-top: 10px;
+    padding-top: 14px;
+    border-top: 1px solid var(--panel-border);
+  }
+
   #slogan { display: none; }
 
   /* 精简地图控件，避免与时间轴/抽屉冲突 */
@@ -1671,7 +1763,8 @@ body.drawer-open #drawer-open { display: none; }
 /* ———— 手机横屏矮视口：压缩上下留白，保住地图可视高度 ———— */
 @media (max-width: 760px) and (max-height: 460px) {
   #mstats { top: calc(env(safe-area-inset-top) + 40px); }
-  #alert-banner { top: calc(env(safe-area-inset-top) + 92px); }
+  body.music-on #mstats { top: calc(env(safe-area-inset-top) + 82px); }
+  #music-bar { top: calc(env(safe-area-inset-top) + 40px); }
   #offline-bar { top: calc(env(safe-area-inset-top) + 132px); }
   #timeline { bottom: calc(88px + env(safe-area-inset-bottom)); }
 }
