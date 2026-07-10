@@ -1,12 +1,17 @@
 {
-  "note": "杭州应急管理公众号推文（经授权转载）。人工维护：新增一条即 push 上线。date 用 YYYY-MM-DD；url 填公众号原文链接；不要放非官方来源。",
-  "consentText": "经杭州应急管理同意转载 · 内容以原文为准",
+  "note": "杭州应急管理官方信息（经授权转载/官方公开渠道）。人工维护：新增一条即 push 上线。date 用 YYYY-MM-DD；url 填官方原文链接；不要放非官方来源。",
+  "consentText": "经杭州应急管理同意转载 · 内容以官方原文为准",
   "items": [
     {
-      "title": "以练筑防！杭州各地开展防汛防台实战演练",
-      "url": "https://mp.weixin.qq.com/",
+      "title": "台风期间，如遇险情请拨打......杭州公布紧急救援电话！",
+      "url": "https://mp.weixin.qq.com/s/az5_lmLG6TzkUqeqaYQCJw",
       "source": "杭州应急管理",
       "date": "2026-07-09"
+    },
+    {
+      "title": "杭州市应急管理局官网",
+      "url": "https://safety.hangzhou.gov.cn/",
+      "source": "杭州市应急管理局"
     }
   ]
 }

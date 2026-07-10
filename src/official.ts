@@ -64,7 +64,9 @@ export async function initOfficialFeed(): Promise<void> {
   const host = document.getElementById("official-feed");
   if (!host) return;
   try {
-    const res = await fetch("/official.json", { signal: AbortSignal.timeout(8000) });
+    // 5 分钟粒度的版本参数：绕过 CDN 边缘对旧副本的缓存，人工更新后最多 5 分钟生效
+    const v = Math.floor(Date.now() / 300000);
+    const res = await fetch(`/official.json?v=${v}`, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = (await res.json()) as OfficialData;
     render(host, data);
