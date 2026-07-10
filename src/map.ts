@@ -374,7 +374,7 @@ export class TyphoonMap {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = im.name === "我的位置" ? "city-marker mine" : "city-marker";
-        btn.setAttribute("aria-label", `查看${im.name}的波及倒计时`);
+        btn.setAttribute("aria-label", `查看${im.name}的影响时间估算`);
         btn.innerHTML = `<i></i><span>${im.name}</span>`;
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -674,13 +674,13 @@ function warnBarHtml(im: CityImpact): string {
 function cityPopupHtml(im: CityImpact): string {
   const statusLabel =
     im.status === "inside"
-      ? `<b class="ci-inside">大风影响中</b>`
+      ? `<b class="ci-inside">或受大风影响</b>`
       : im.status === "incoming"
-        ? `<b class="ci-incoming">${formatEta(im.etaT!)}后波及</b>`
+        ? `<b class="ci-incoming">约${formatEta(im.etaT!)}（估算）</b>`
         : `<b class="ci-watch">大风圈外</b>`;
   const eta =
     im.status === "incoming"
-      ? `<div class="tip-row"><span>预计7级风圈到达</span><b>${new Date(im.etaT!).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</b></div>`
+      ? `<div class="tip-row"><span>预计7级风圈到达（估算）</span><b>${new Date(im.etaT!).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</b></div>`
       : "";
   return `<div class="tip city-tip">
     <div class="tip-head"><i class="ci-dot ci-${im.status}"></i>${im.name} · ${statusLabel}</div>

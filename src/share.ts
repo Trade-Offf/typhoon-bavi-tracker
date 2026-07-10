@@ -126,7 +126,7 @@ export async function openShareModal(payload: SharePayload): Promise<void> {
   }
 
   if (isMobile()) {
-    title.textContent = "转发给身边人 · 提前预警";
+    title.textContent = "转发给身边人 · 提前准备";
     hint.textContent = hasShare
       ? "点「系统分享」发到微信/群聊，或长按二维码保存"
       : "复制链接发给好友，或保存二维码图片";

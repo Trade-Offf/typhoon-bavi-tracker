@@ -146,7 +146,7 @@ export function warningMarks(etaT: number): WarningMarks {
 /** 倒计时人类可读格式："约 32 小时" / "8 小时 20 分" */
 export function formatEta(etaT: number, now = Date.now()): string {
   const ms = etaT - now;
-  if (ms <= 0) return "即将波及";
+  if (ms <= 0) return "可能即将受影响";
   const totalMin = Math.round(ms / 60000);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;

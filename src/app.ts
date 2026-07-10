@@ -5,6 +5,7 @@ import type { TyphoonData } from "./types";
 import { intensityOf, INTENSITY_ORDER, agencyColor, powerValue, powerUnit } from "./intensity";
 import { renderGuide, openGuideModal, setGuideContext } from "./guide";
 import { initNews, refreshNews } from "./news";
+import { initOfficialFeed } from "./official";
 import { initSlogans } from "./slogan";
 import { openShareModal, type SharePayload } from "./share";
 import type { PosterData } from "./poster";
@@ -209,13 +210,13 @@ function sharePayload(): SharePayload {
   const incoming = pickFocusImpact(latestImpacts.filter((x) => x.name !== MY_LOCATION));
   const city = incoming?.name;
   const url = city ? `https://chinaupdated.com/?city=${encodeURIComponent(city)}` : "https://chinaupdated.com/";
-  let text = "台风巴威路径追踪：查看你的城市还有多久需要关注，提前做好准备：";
+  let text = "台风巴威路径查询：对照官方预报路径看你的城市影响时间估算，提前做好准备（信息转自官方公开渠道）：";
   if (incoming?.status === "inside") {
-    text = `台风巴威大风可能影响${city}，请留意官方预警，转告亲友：`;
+    text = `据官方预报路径估算，台风巴威大风可能影响${city}，请以官方预警为准并转告亲友（信息转自官方公开渠道）：`;
   } else if (incoming?.status === "incoming" && incoming.etaT) {
-    text = `台风巴威预计${formatEta(incoming.etaT)}后${city}进入大风影响范围（估算），可关注官方预警并提前准备：`;
+    text = `据官方预报路径估算，${city}距大风影响约${formatEta(incoming.etaT)}（估算，非官方预警），请以官方预警为准并提前准备（信息转自官方公开渠道）：`;
   }
-  return { title: "台风巴威实时追踪 · 波及倒计时", text, url, poster: posterData(incoming) };
+  return { title: "台风巴威路径查询 · 官方预报聚合", text, url, poster: posterData(incoming) };
 }
 
 function updateAlertBanner(impacts: CityImpact[]): void {
@@ -236,11 +237,11 @@ function updateAlertBanner(impacts: CityImpact[]): void {
   const msg =
     target.status === "inside"
       ? small
-        ? `${target.name} · 大风影响中`
-        : `${target.name} · 大风影响中 · 请留在室内`
+        ? `${target.name} · 或受大风影响`
+        : `${target.name} · 或受大风影响 · 请以官方预警为准`
       : small
-        ? `${target.name} · ${formatEta(target.etaT!)}后波及 →`
-        : `${target.name} · 预计 ${formatEta(target.etaT!)} 后波及 · 点击看详情`;
+        ? `${target.name} · 约${formatEta(target.etaT!)}（估算）→`
+        : `${target.name} · 距官方预报路径影响约 ${formatEta(target.etaT!)}（估算）· 点击看详情`;
   banner.textContent = msg;
   syncAlertBannerHost();
 }
@@ -521,8 +522,8 @@ function updateFreshness(): void {
   }
   stamp.classList.toggle("stale", stale);
   stamp.innerHTML = small
-    ? `截至 <b>${last.time.slice(5, 16)}</b>${data.active ? "" : " · 停编"}${tail}`
-    : `数据截至 <b>${last.time}</b>（北京时间）${data.active ? "" : " · 已停编"}${tail}`;
+    ? `官方数据 · 截至 <b>${last.time.slice(5, 16)}</b>${data.active ? "" : " · 停编"}${tail}`
+    : `中央气象台等官方数据 · 截至 <b>${last.time}</b>（北京时间）${data.active ? "" : " · 已停编"}${tail}`;
 }
 
 /** ———— 启动与自动刷新（失败退避重试） ———— */
@@ -619,6 +620,8 @@ renderGuide($("#panel-guide"));
 initSlogans();
 // 资讯面板延迟加载，优先渲染地图与台风数据
 setTimeout(initNews, 2500);
+// 官方发布区（已授权转载）优先于实时资讯露出
+setTimeout(initOfficialFeed, 800);
 // 布局编排：移动端合并为底部抽屉，桌面维持左右分栏
 initMobile();
 // 中屏（平板：761–1099）默认收起右侧抽屉，把地图让给主视野

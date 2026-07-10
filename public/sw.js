@@ -44,8 +44,8 @@ self.addEventListener("fetch", (e) => {
   // 音频走浏览器原生加载：Range 的 206 无法缓存，且 clone 缓存会连累页面拿字节 → 完全放行
   if (url.pathname.startsWith("/music/") || req.headers.has("range")) return;
 
-  if (url.pathname.startsWith("/api/") || req.mode === "navigate") {
-    // API 与 HTML 都走网络优先：防灾信息必须最新，断网才退回缓存
+  if (url.pathname.startsWith("/api/") || url.pathname === "/official.json" || req.mode === "navigate") {
+    // API、官方发布区、HTML 都走网络优先：防灾信息必须最新，断网才退回缓存
     e.respondWith(networkFirst(req));
   } else {
     // 带哈希的静态资源不可变，缓存优先最快

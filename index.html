@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="2026年第9号台风巴威（BAVI）实时路径追踪：多机构预报对比、城市波及倒计时、应对指南。提前预防，减少灾情影响。" />
-  <meta name="keywords" content="台风巴威,BAVI,台风路径,实时台风,台风预报,防台风,台风倒计时" />
-  <title>台风巴威实时追踪 · 波及倒计时与应对指南</title>
+  <meta name="description" content="2026年第9号台风巴威（BAVI）路径查询：聚合中央气象台等官方公开预报路径，提供多机构预报对比、城市影响时间估算与应对指南。本站不发布气象预报与预警，一切以官方为准。" />
+  <meta name="keywords" content="台风巴威,BAVI,台风路径查询,官方预报聚合,台风路径,防台风,应对指南" />
+  <title>台风巴威路径查询 · 官方预报聚合与应对指南</title>
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="台风巴威 BAVI 实时追踪 · 你的城市还有多久被波及？" />
-  <meta property="og:description" content="实时路径 + 多家官方机构预报对比 + 城市波及倒计时 + 防台应对指南。转发给你关心的人，提前准备。" />
+  <meta property="og:title" content="台风巴威 BAVI 路径查询 · 官方多机构预报聚合" />
+  <meta property="og:description" content="聚合中央气象台等官方公开预报路径 + 多机构预报对比 + 城市影响时间估算 + 应对指南。信息转自官方公开渠道，以官方发布为准。" />
   <meta property="og:url" content="https://chinaupdated.com/" />
   <meta property="og:image" content="https://chinaupdated.com/og.png" />
   <meta property="og:image:width" content="1200" />
@@ -76,7 +76,8 @@
     </div>
 
     <div class="hud-section" id="sec-impact">
-      <h2>城市波及倒计时</h2>
+      <h2>城市影响参考（估算）</h2>
+      <p class="sec-note">基于中央气象台公开预报路径几何估算 · 非官方预警，以官方发布为准</p>
       <div id="impact-list" class="impact-list"></div>
       <button id="btn-guide" class="guide-cta" type="button">现在该做什么 →</button>
     </div>
@@ -98,8 +99,8 @@
       <a href="https://www.bilibili.com/video/BV148Ms6MET9/" target="_blank" rel="noopener">作者碎碎念</a>
       <a href="https://space.bilibili.com/343786927" target="_blank" rel="noopener">背景音乐《宫花红》赤星版 · @北极星电台（已授权）</a>
       <button type="button" id="btn-origin" class="hud-link-btn">聊聊初心 →</button>
-      <span>断网也能看倒计时与应急指南</span>
-      <span>信息仅供参考，请以官方预警为准</span>
+      <span>断网也能看影响估算与应急指南</span>
+      <span class="hud-compliance">本站不制作、不发布气象预报与预警；全部台风数据转载自中央气象台、浙江省水利厅等官方公开渠道；影响时间为数学估算，仅供参考，一切以官方发布为准。</span>
     </div>
   </aside>
   <button id="hud-open" aria-label="展开实况面板">
@@ -125,6 +126,7 @@
     </div>
     <div class="drawer-body">
       <section id="panel-news" class="drawer-panel active" role="tabpanel">
+        <div id="official-feed" class="official-feed" hidden></div>
         <div class="news-meta" id="news-meta">正在聚合最新资讯…</div>
         <div id="news-list" class="news-list"></div>
         <a class="xhs-link" href="https://www.xiaohongshu.com/search_result?keyword=%E5%8F%B0%E9%A3%8E%E5%B7%B4%E5%A8%81" target="_blank" rel="noopener">

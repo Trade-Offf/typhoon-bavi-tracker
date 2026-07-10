@@ -243,7 +243,7 @@ export function setGuideContext(
 function etaNoteText(): string {
   if (ctx.status === "inside") return `${ctx.place ?? ""}大风影响中`;
   if (ctx.etaT) return `${ctx.place ?? ""}距大风约 ${formatEta(ctx.etaT)}`;
-  return "暂无波及预报，提前准备总是对的";
+  return "暂无影响估算，提前准备总是对的";
 }
 
 /** ———— 渲染 ———— */

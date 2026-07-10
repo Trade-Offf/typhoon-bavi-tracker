@@ -96,11 +96,11 @@
         x.fillRect(0, 0, W, H);
         drawEye(970, 210);
 
-        // 左上角红色小 pill
+        // 左上角来源 pill（中性色，非官方预警信号）
         x.font = `700 22px ${SANS}`;
-        const pillTxt = "台风红色预警";
+        const pillTxt = "台风路径信息 · 来源：中央气象台";
         const pw = x.measureText(pillTxt).width + 40;
-        x.fillStyle = "rgba(255,49,49,0.16)";
+        x.fillStyle = "rgba(126,155,205,0.14)";
         x.beginPath();
         x.moveTo(M + 22, 64);
         x.arcTo(M + pw, 64, M + pw, 64 + 46, 22);
@@ -109,31 +109,31 @@
         x.arcTo(M, 64, M + pw, 64, 22);
         x.closePath();
         x.fill();
-        x.strokeStyle = "rgba(255,49,49,0.5)";
+        x.strokeStyle = "rgba(126,155,205,0.45)";
         x.lineWidth = 1.5;
         x.stroke();
         x.textBaseline = "middle";
-        x.fillStyle = "#ff8a8a";
+        x.fillStyle = "#aebfda";
         x.fillText(pillTxt, M + 20, 64 + 23);
 
         // 主标题
         x.textBaseline = "alphabetic";
         x.fillStyle = INK;
         x.font = `900 62px ${SANS}`;
-        x.fillText("超强台风「巴威」", M, 250);
-        x.fillText("实时追踪", M, 322);
+        x.fillText("台风「巴威」", M, 250);
+        x.fillText("路径查询", M, 322);
 
         x.fillStyle = DIM;
         x.font = `600 30px ${SANS}`;
-        const seg1 = "你的城市 ";
+        const seg1 = "官方预报路径 ";
         x.fillText(seg1, M, 390);
         const seg1w = x.measureText(seg1).width;
         x.fillStyle = AMBER;
-        x.fillText("还剩多久？", M + seg1w, 390);
+        x.fillText("聚合展示", M + seg1w, 390);
 
         x.fillStyle = DIM;
         x.font = `400 24px ${SANS}`;
-        x.fillText("实时路径 · 到达倒计时 · 应急指南", M, 445);
+        x.fillText("官方预报路径 · 影响时间估算 · 应急指南", M, 445);
 
         // 底部品牌
         x.fillStyle = "rgba(255,255,255,0.12)";

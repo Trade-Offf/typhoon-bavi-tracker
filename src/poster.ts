@@ -1,7 +1,9 @@
 /**
- * 分享海报生成：把已经验证过的横版视觉（红色预警带 + 台风眼 + 三数据卡）
- * 接到分享弹窗里，用当前真实数据现场画一张可下载/可分享的图，
- * 而不是让海报停留在孤立的静态草稿文件里没人摸得到。
+ * 分享海报生成：把横版视觉（来源信息条 + 台风眼 + 三数据卡）接到分享弹窗里，
+ * 用当前真实数据现场画一张可下载/可分享的图。
+ *
+ * 合规注意：本海报仅转载并可视化官方公开数据，不得模仿官方预警信号（红色预警带）
+ * 或以本站名义"发布预警"。顶/底信息条一律标注数据来源与"非官方预警"声明。
  */
 import { powerValue, powerUnit } from "./intensity";
 
@@ -24,7 +26,9 @@ const INK = "#e8eefb";
 const DIM = "#8fa3c7";
 const RED = "#ff3131";
 const AMBER = "#ffd23f";
-const SOURCE_NOTE = "数据来源：浙江省水利厅、中央气象台 · 以官方预警为准";
+const BAND = "#141c30"; // 信息条底色：中性深色，避免模仿官方红色预警信号
+const BAND_BORDER = "rgba(126,155,205,0.28)";
+const SOURCE_NOTE = "数据来源：中央气象台、浙江省水利厅（官方公开信息）· 本站不发布预警，以官方为准";
 
 const W = 1600;
 const H = 900;
@@ -80,15 +84,29 @@ function drawPoster(ctx: CanvasRenderingContext2D, d: PosterData): void {
   ctx.fillRect(0, 0, W, H);
   drawEye(ctx, 1230, 280);
 
-  // 顶部红色预警带
-  ctx.fillStyle = RED;
+  // 顶部信息条：来源标注式（非官方预警信号）
+  ctx.fillStyle = BAND;
   ctx.fillRect(0, 0, W, 74);
+  ctx.strokeStyle = BAND_BORDER;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, 74);
+  ctx.lineTo(W, 74);
+  ctx.stroke();
   ctx.textBaseline = "middle";
-  ctx.fillStyle = "#fff";
-  ctx.font = `900 32px ${SANS}`;
+  ctx.fillStyle = INK;
+  ctx.font = `800 30px ${SANS}`;
   ctx.textAlign = "left";
-  ctx.fillText("台风红色预警", SAFE_L, 37);
+  ctx.fillText("台风路径信息", SAFE_L, 37);
+  ctx.fillStyle = DIM;
+  ctx.font = `500 20px ${SANS}`;
+  const label = "台风路径信息";
+  ctx.font = `800 30px ${SANS}`;
+  const labelW = ctx.measureText(label).width;
+  ctx.font = `500 20px ${SANS}`;
+  ctx.fillText("· 数据来源：中央气象台", SAFE_L + labelW + 14, 39);
   ctx.font = `600 22px ${SANS}`;
+  ctx.fillStyle = DIM;
   ctx.textAlign = "right";
   ctx.fillText(`${d.typhoonNo} · ${d.nameCn} ${d.nameEn}`, SAFE_R, 37);
   ctx.textAlign = "left";
@@ -104,7 +122,7 @@ function drawPoster(ctx: CanvasRenderingContext2D, d: PosterData): void {
   let seg2 = "还剩多久？";
   if (d.focusCity && d.focusEtaText) {
     seg1 = `${d.focusCity} `;
-    seg2 = d.focusEtaText === "已进入影响范围" ? "已进入影响范围" : `预计${d.focusEtaText}后波及`;
+    seg2 = d.focusEtaText === "已进入影响范围" ? "或已进入影响范围" : `约${d.focusEtaText}（估算）`;
   }
   ctx.fillText(seg1, SAFE_L, y2);
   const seg1w = ctx.measureText(seg1).width;
@@ -115,7 +133,7 @@ function drawPoster(ctx: CanvasRenderingContext2D, d: PosterData): void {
 
   ctx.fillStyle = DIM;
   ctx.font = `400 26px ${SANS}`;
-  ctx.fillText("官方路径 · 到达倒计时 · 应急指南，一页看清", SAFE_L, 425);
+  ctx.fillText("官方预报路径 · 影响时间估算 · 应急指南，一页看清", SAFE_L, 425);
 
   // 三张数据卡
   const cardY = 490;
@@ -157,15 +175,21 @@ function drawPoster(ctx: CanvasRenderingContext2D, d: PosterData): void {
   });
   ctx.textAlign = "left";
 
-  // 底部红色带
-  ctx.fillStyle = RED;
+  // 底部信息条：来源与免责声明（非官方预警信号）
+  ctx.fillStyle = BAND;
   ctx.fillRect(0, H - 92, W, 92);
+  ctx.strokeStyle = BAND_BORDER;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, H - 92);
+  ctx.lineTo(W, H - 92);
+  ctx.stroke();
   ctx.textBaseline = "middle";
-  ctx.fillStyle = "rgba(255,255,255,0.75)";
+  ctx.fillStyle = "rgba(226,238,251,0.72)";
   ctx.font = `400 20px ${SANS}`;
   ctx.fillText(SOURCE_NOTE, SAFE_L, H - 46);
   ctx.textAlign = "right";
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = INK;
   ctx.font = `900 36px ${SANS}`;
   ctx.fillText("chinaupdated.com →", SAFE_R, H - 46);
   ctx.textAlign = "left";
