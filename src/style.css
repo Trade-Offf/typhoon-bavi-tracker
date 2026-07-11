@@ -719,17 +719,14 @@ body.share-open { overflow: hidden; }
    默认不拦截指针，保证在装饰性标记（台风眼/日期）上仍可拖拽地图；可交互内层自行开启。 */
 .mk-shell { line-height: 0; pointer-events: none; }
 .city-marker {
-  position: relative; /* 作为 ::after 触控热区的定位上下文；此处是内层元素，不影响 MapLibre 外壳 */
+  position: relative; /* ::after 触控热区 + 绝对定位地名的定位上下文；内层元素，不影响 MapLibre 外壳 */
   pointer-events: auto;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 4px;
-  line-height: normal;
+  padding: 0; /* 锚点盒子=圆点本身 */
+  line-height: 0; /* 杜绝基线行高把盒子撑高，保证 anchor:center 恰好命中圆点中心 */
 }
 .city-marker i {
   width: 9px; height: 9px;
@@ -738,6 +735,12 @@ body.share-open { overflow: hidden; }
   background: #9aa5b1;
 }
 .city-marker span {
+  /* 绝对定位悬于圆点正下方：不撑大锚点盒子，圆点锚点恒定不受地名高度影响 */
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
   font-size: var(--fs-11);
   font-weight: 600;
   color: #dbe5f5;

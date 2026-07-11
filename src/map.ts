@@ -380,7 +380,10 @@ export class TyphoonMap {
           e.stopPropagation();
           this.focusCity(im.name, false);
         });
-        marker = new maplibregl.Marker({ element: markerShell(btn), anchor: "bottom" })
+        // anchor:center → 圆点几何中心精确钉在城市坐标上。
+        // 锚点盒子仅等于圆点本身（地名在 CSS 里绝对定位、不占盒子），
+        // 故不会被"圆点在上、地名在下"的竖排高度顶得偏上。见 style.css .city-marker。
+        marker = new maplibregl.Marker({ element: markerShell(btn), anchor: "center" })
           .setLngLat([im.lng, im.lat])
           .addTo(this.map);
         this.cityMarkers.set(im.name, marker);
