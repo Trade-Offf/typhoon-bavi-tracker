@@ -27,12 +27,19 @@ export function destination(lng: number, lat: number, bearing: number, dist: num
 /**
  * 四象限不等半径风圈多边形（GeoJSON ring）。
  * quad 顺序：东北(0°-90°) | 东南(90°-180°) | 西南(180°-270°) | 西北(270°-360°)
+ *
+ * 逐象限迭代，确保每个象限精确覆盖 90° 圆心角。
+ * 相邻象限在边界角度各生成一个点（不同半径），自然形成径向分割线。
  */
 export function windCircleRing(lng: number, lat: number, quad: Quad): [number, number][] {
   const ring: [number, number][] = [];
-  for (let b = 0; b <= 360; b += 4) {
-    const idx = Math.floor((b % 360) / 90);
-    ring.push(destination(lng, lat, b, quad[idx]));
+  const STEP = 3; // 必须整除 90，保证边界角度（0°/90°/180°/270°/360°）被精确采样
+  for (let q = 0; q < 4; q++) {
+    const start = q * 90;
+    const end = (q + 1) * 90;
+    for (let b = start; b <= end; b += STEP) {
+      ring.push(destination(lng, lat, b % 360, quad[q]));
+    }
   }
   ring.push(ring[0]);
   return ring;
