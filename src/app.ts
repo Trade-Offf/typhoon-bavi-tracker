@@ -266,6 +266,8 @@ async function fetchData(): Promise<TyphoonData> {
 }
 
 function applyData(d: TyphoonData, first: boolean): void {
+  // 防御：确保 forecasts 始终是数组（原始数据可能缺少此字段）
+  if (!Array.isArray(d.forecasts)) d.forecasts = [];
   data = d;
   tmap.setData(d);
   const pts = d.points;
